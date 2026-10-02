@@ -1,0 +1,222 @@
+{
+  "source": "data/call_transcripts/**/call_transcripts_*.csv:agent_text",
+  "source_language": "es",
+  "translation_language": "pt",
+  "translation_provenance": "TEAM_CREATED; BILINGUAL_REVIEW_PENDING",
+  "purpose": "tone_examples_only; not product facts, eligibility labels, or training ground truth",
+  "distinct_full_templates": 42,
+  "base_template_count": 2,
+  "closing_phrase_count": 4,
+  "examples": [
+    {
+      "id": "tone-001",
+      "es": "Buenas tardes, claro que sí. Déjeme revisar esa información. Su saldo actual es {monto} {moneda} y su límite disponible es de {limite} {moneda}.",
+      "pt": "Boa tarde, claro. Vou consultar essas informações. Seu saldo atual é de {monto} {moneda} e seu limite disponível é de {limite} {moneda}."
+    },
+    {
+      "id": "tone-002",
+      "es": "Buenas tardes, claro que sí. Déjeme revisar esa información. Su saldo actual es {monto} {moneda} y su límite disponible es de {limite} {moneda}. Claro, estoy para servirle.",
+      "pt": "Boa tarde, claro. Vou consultar essas informações. Seu saldo atual é de {monto} {moneda} e seu limite disponível é de {limite} {moneda}. Claro, estou à disposição."
+    },
+    {
+      "id": "tone-003",
+      "es": "Buenas tardes, claro que sí. Déjeme revisar esa información. Su saldo actual es {monto} {moneda} y su límite disponible es de {limite} {moneda}. Claro, estoy para servirle. Claro, estoy para servirle.",
+      "pt": "Boa tarde, claro. Vou consultar essas informações. Seu saldo atual é de {monto} {moneda} e seu limite disponível é de {limite} {moneda}. Claro, estou à disposição. Claro, estou à disposição."
+    },
+    {
+      "id": "tone-004",
+      "es": "Buenas tardes, claro que sí. Déjeme revisar esa información. Su saldo actual es {monto} {moneda} y su límite disponible es de {limite} {moneda}. Claro, estoy para servirle. Con gusto. ¿Hay algo más en lo que pueda ayudarle?",
+      "pt": "Boa tarde, claro. Vou consultar essas informações. Seu saldo atual é de {monto} {moneda} e seu limite disponível é de {limite} {moneda}. Claro, estou à disposição. Com prazer. Há mais alguma coisa em que eu possa ajudar?"
+    },
+    {
+      "id": "tone-005",
+      "es": "Buenas tardes, claro que sí. Déjeme revisar esa información. Su saldo actual es {monto} {moneda} y su límite disponible es de {limite} {moneda}. Claro, estoy para servirle. No hay problema, que tenga buen día.",
+      "pt": "Boa tarde, claro. Vou consultar essas informações. Seu saldo atual é de {monto} {moneda} e seu limite disponível é de {limite} {moneda}. Claro, estou à disposição. Sem problema, tenha um bom dia."
+    },
+    {
+      "id": "tone-006",
+      "es": "Buenas tardes, claro que sí. Déjeme revisar esa información. Su saldo actual es {monto} {moneda} y su límite disponible es de {limite} {moneda}. Claro, estoy para servirle. Perfecto, ¿necesita algo más?",
+      "pt": "Boa tarde, claro. Vou consultar essas informações. Seu saldo atual é de {monto} {moneda} e seu limite disponível é de {limite} {moneda}. Claro, estou à disposição. Perfeito, precisa de mais alguma coisa?"
+    },
+    {
+      "id": "tone-007",
+      "es": "Buenas tardes, claro que sí. Déjeme revisar esa información. Su saldo actual es {monto} {moneda} y su límite disponible es de {limite} {moneda}. Con gusto. ¿Hay algo más en lo que pueda ayudarle?",
+      "pt": "Boa tarde, claro. Vou consultar essas informações. Seu saldo atual é de {monto} {moneda} e seu limite disponível é de {limite} {moneda}. Com prazer. Há mais alguma coisa em que eu possa ajudar?"
+    },
+    {
+      "id": "tone-008",
+      "es": "Buenas tardes, claro que sí. Déjeme revisar esa información. Su saldo actual es {monto} {moneda} y su límite disponible es de {limite} {moneda}. Con gusto. ¿Hay algo más en lo que pueda ayudarle? Claro, estoy para servirle.",
+      "pt": "Boa tarde, claro. Vou consultar essas informações. Seu saldo atual é de {monto} {moneda} e seu limite disponível é de {limite} {moneda}. Com prazer. Há mais alguma coisa em que eu possa ajudar? Claro, estou à disposição."
+    },
+    {
+      "id": "tone-009",
+      "es": "Buenas tardes, claro que sí. Déjeme revisar esa información. Su saldo actual es {monto} {moneda} y su límite disponible es de {limite} {moneda}. Con gusto. ¿Hay algo más en lo que pueda ayudarle? Con gusto. ¿Hay algo más en lo que pueda ayudarle?",
+      "pt": "Boa tarde, claro. Vou consultar essas informações. Seu saldo atual é de {monto} {moneda} e seu limite disponível é de {limite} {moneda}. Com prazer. Há mais alguma coisa em que eu possa ajudar? Com prazer. Há mais alguma coisa em que eu possa ajudar?"
+    },
+    {
+      "id": "tone-010",
+      "es": "Buenas tardes, claro que sí. Déjeme revisar esa información. Su saldo actual es {monto} {moneda} y su límite disponible es de {limite} {moneda}. Con gusto. ¿Hay algo más en lo que pueda ayudarle? No hay problema, que tenga buen día.",
+      "pt": "Boa tarde, claro. Vou consultar essas informações. Seu saldo atual é de {monto} {moneda} e seu limite disponível é de {limite} {moneda}. Com prazer. Há mais alguma coisa em que eu possa ajudar? Sem problema, tenha um bom dia."
+    },
+    {
+      "id": "tone-011",
+      "es": "Buenas tardes, claro que sí. Déjeme revisar esa información. Su saldo actual es {monto} {moneda} y su límite disponible es de {limite} {moneda}. Con gusto. ¿Hay algo más en lo que pueda ayudarle? Perfecto, ¿necesita algo más?",
+      "pt": "Boa tarde, claro. Vou consultar essas informações. Seu saldo atual é de {monto} {moneda} e seu limite disponível é de {limite} {moneda}. Com prazer. Há mais alguma coisa em que eu possa ajudar? Perfeito, precisa de mais alguma coisa?"
+    },
+    {
+      "id": "tone-012",
+      "es": "Buenas tardes, claro que sí. Déjeme revisar esa información. Su saldo actual es {monto} {moneda} y su límite disponible es de {limite} {moneda}. No hay problema, que tenga buen día.",
+      "pt": "Boa tarde, claro. Vou consultar essas informações. Seu saldo atual é de {monto} {moneda} e seu limite disponível é de {limite} {moneda}. Sem problema, tenha um bom dia."
+    },
+    {
+      "id": "tone-013",
+      "es": "Buenas tardes, claro que sí. Déjeme revisar esa información. Su saldo actual es {monto} {moneda} y su límite disponible es de {limite} {moneda}. No hay problema, que tenga buen día. Claro, estoy para servirle.",
+      "pt": "Boa tarde, claro. Vou consultar essas informações. Seu saldo atual é de {monto} {moneda} e seu limite disponível é de {limite} {moneda}. Sem problema, tenha um bom dia. Claro, estou à disposição."
+    },
+    {
+      "id": "tone-014",
+      "es": "Buenas tardes, claro que sí. Déjeme revisar esa información. Su saldo actual es {monto} {moneda} y su límite disponible es de {limite} {moneda}. No hay problema, que tenga buen día. Con gusto. ¿Hay algo más en lo que pueda ayudarle?",
+      "pt": "Boa tarde, claro. Vou consultar essas informações. Seu saldo atual é de {monto} {moneda} e seu limite disponível é de {limite} {moneda}. Sem problema, tenha um bom dia. Com prazer. Há mais alguma coisa em que eu possa ajudar?"
+    },
+    {
+      "id": "tone-015",
+      "es": "Buenas tardes, claro que sí. Déjeme revisar esa información. Su saldo actual es {monto} {moneda} y su límite disponible es de {limite} {moneda}. No hay problema, que tenga buen día. No hay problema, que tenga buen día.",
+      "pt": "Boa tarde, claro. Vou consultar essas informações. Seu saldo atual é de {monto} {moneda} e seu limite disponível é de {limite} {moneda}. Sem problema, tenha um bom dia. Sem problema, tenha um bom dia."
+    },
+    {
+      "id": "tone-016",
+      "es": "Buenas tardes, claro que sí. Déjeme revisar esa información. Su saldo actual es {monto} {moneda} y su límite disponible es de {limite} {moneda}. No hay problema, que tenga buen día. Perfecto, ¿necesita algo más?",
+      "pt": "Boa tarde, claro. Vou consultar essas informações. Seu saldo atual é de {monto} {moneda} e seu limite disponível é de {limite} {moneda}. Sem problema, tenha um bom dia. Perfeito, precisa de mais alguma coisa?"
+    },
+    {
+      "id": "tone-017",
+      "es": "Buenas tardes, claro que sí. Déjeme revisar esa información. Su saldo actual es {monto} {moneda} y su límite disponible es de {limite} {moneda}. Perfecto, ¿necesita algo más?",
+      "pt": "Boa tarde, claro. Vou consultar essas informações. Seu saldo atual é de {monto} {moneda} e seu limite disponível é de {limite} {moneda}. Perfeito, precisa de mais alguma coisa?"
+    },
+    {
+      "id": "tone-018",
+      "es": "Buenas tardes, claro que sí. Déjeme revisar esa información. Su saldo actual es {monto} {moneda} y su límite disponible es de {limite} {moneda}. Perfecto, ¿necesita algo más? Claro, estoy para servirle.",
+      "pt": "Boa tarde, claro. Vou consultar essas informações. Seu saldo atual é de {monto} {moneda} e seu limite disponível é de {limite} {moneda}. Perfeito, precisa de mais alguma coisa? Claro, estou à disposição."
+    },
+    {
+      "id": "tone-019",
+      "es": "Buenas tardes, claro que sí. Déjeme revisar esa información. Su saldo actual es {monto} {moneda} y su límite disponible es de {limite} {moneda}. Perfecto, ¿necesita algo más? Con gusto. ¿Hay algo más en lo que pueda ayudarle?",
+      "pt": "Boa tarde, claro. Vou consultar essas informações. Seu saldo atual é de {monto} {moneda} e seu limite disponível é de {limite} {moneda}. Perfeito, precisa de mais alguma coisa? Com prazer. Há mais alguma coisa em que eu possa ajudar?"
+    },
+    {
+      "id": "tone-020",
+      "es": "Buenas tardes, claro que sí. Déjeme revisar esa información. Su saldo actual es {monto} {moneda} y su límite disponible es de {limite} {moneda}. Perfecto, ¿necesita algo más? No hay problema, que tenga buen día.",
+      "pt": "Boa tarde, claro. Vou consultar essas informações. Seu saldo atual é de {monto} {moneda} e seu limite disponível é de {limite} {moneda}. Perfeito, precisa de mais alguma coisa? Sem problema, tenha um bom dia."
+    },
+    {
+      "id": "tone-021",
+      "es": "Buenas tardes, claro que sí. Déjeme revisar esa información. Su saldo actual es {monto} {moneda} y su límite disponible es de {limite} {moneda}. Perfecto, ¿necesita algo más? Perfecto, ¿necesita algo más?",
+      "pt": "Boa tarde, claro. Vou consultar essas informações. Seu saldo atual é de {monto} {moneda} e seu limite disponível é de {limite} {moneda}. Perfeito, precisa de mais alguma coisa? Perfeito, precisa de mais alguma coisa?"
+    },
+    {
+      "id": "tone-022",
+      "es": "Buenos días, con gusto le ayudo. Permítame un momento para verificar su saldo. Su saldo actual es de {monto} {moneda}.",
+      "pt": "Bom dia, terei prazer em ajudar. Vou verificar seu saldo. Seu saldo atual é de {monto} {moneda}."
+    },
+    {
+      "id": "tone-023",
+      "es": "Buenos días, con gusto le ayudo. Permítame un momento para verificar su saldo. Su saldo actual es de {monto} {moneda}. Claro, estoy para servirle.",
+      "pt": "Bom dia, terei prazer em ajudar. Vou verificar seu saldo. Seu saldo atual é de {monto} {moneda}. Claro, estou à disposição."
+    },
+    {
+      "id": "tone-024",
+      "es": "Buenos días, con gusto le ayudo. Permítame un momento para verificar su saldo. Su saldo actual es de {monto} {moneda}. Claro, estoy para servirle. Claro, estoy para servirle.",
+      "pt": "Bom dia, terei prazer em ajudar. Vou verificar seu saldo. Seu saldo atual é de {monto} {moneda}. Claro, estou à disposição. Claro, estou à disposição."
+    },
+    {
+      "id": "tone-025",
+      "es": "Buenos días, con gusto le ayudo. Permítame un momento para verificar su saldo. Su saldo actual es de {monto} {moneda}. Claro, estoy para servirle. Con gusto. ¿Hay algo más en lo que pueda ayudarle?",
+      "pt": "Bom dia, terei prazer em ajudar. Vou verificar seu saldo. Seu saldo atual é de {monto} {moneda}. Claro, estou à disposição. Com prazer. Há mais alguma coisa em que eu possa ajudar?"
+    },
+    {
+      "id": "tone-026",
+      "es": "Buenos días, con gusto le ayudo. Permítame un momento para verificar su saldo. Su saldo actual es de {monto} {moneda}. Claro, estoy para servirle. No hay problema, que tenga buen día.",
+      "pt": "Bom dia, terei prazer em ajudar. Vou verificar seu saldo. Seu saldo atual é de {monto} {moneda}. Claro, estou à disposição. Sem problema, tenha um bom dia."
+    },
+    {
+      "id": "tone-027",
+      "es": "Buenos días, con gusto le ayudo. Permítame un momento para verificar su saldo. Su saldo actual es de {monto} {moneda}. Claro, estoy para servirle. Perfecto, ¿necesita algo más?",
+      "pt": "Bom dia, terei prazer em ajudar. Vou verificar seu saldo. Seu saldo atual é de {monto} {moneda}. Claro, estou à disposição. Perfeito, precisa de mais alguma coisa?"
+    },
+    {
+      "id": "tone-028",
+      "es": "Buenos días, con gusto le ayudo. Permítame un momento para verificar su saldo. Su saldo actual es de {monto} {moneda}. Con gusto. ¿Hay algo más en lo que pueda ayudarle?",
+      "pt": "Bom dia, terei prazer em ajudar. Vou verificar seu saldo. Seu saldo atual é de {monto} {moneda}. Com prazer. Há mais alguma coisa em que eu possa ajudar?"
+    },
+    {
+      "id": "tone-029",
+      "es": "Buenos días, con gusto le ayudo. Permítame un momento para verificar su saldo. Su saldo actual es de {monto} {moneda}. Con gusto. ¿Hay algo más en lo que pueda ayudarle? Claro, estoy para servirle.",
+      "pt": "Bom dia, terei prazer em ajudar. Vou verificar seu saldo. Seu saldo atual é de {monto} {moneda}. Com prazer. Há mais alguma coisa em que eu possa ajudar? Claro, estou à disposição."
+    },
+    {
+      "id": "tone-030",
+      "es": "Buenos días, con gusto le ayudo. Permítame un momento para verificar su saldo. Su saldo actual es de {monto} {moneda}. Con gusto. ¿Hay algo más en lo que pueda ayudarle? Con gusto. ¿Hay algo más en lo que pueda ayudarle?",
+      "pt": "Bom dia, terei prazer em ajudar. Vou verificar seu saldo. Seu saldo atual é de {monto} {moneda}. Com prazer. Há mais alguma coisa em que eu possa ajudar? Com prazer. Há mais alguma coisa em que eu possa ajudar?"
+    },
+    {
+      "id": "tone-031",
+      "es": "Buenos días, con gusto le ayudo. Permítame un momento para verificar su saldo. Su saldo actual es de {monto} {moneda}. Con gusto. ¿Hay algo más en lo que pueda ayudarle? No hay problema, que tenga buen día.",
+      "pt": "Bom dia, terei prazer em ajudar. Vou verificar seu saldo. Seu saldo atual é de {monto} {moneda}. Com prazer. Há mais alguma coisa em que eu possa ajudar? Sem problema, tenha um bom dia."
+    },
+    {
+      "id": "tone-032",
+      "es": "Buenos días, con gusto le ayudo. Permítame un momento para verificar su saldo. Su saldo actual es de {monto} {moneda}. Con gusto. ¿Hay algo más en lo que pueda ayudarle? Perfecto, ¿necesita algo más?",
+      "pt": "Bom dia, terei prazer em ajudar. Vou verificar seu saldo. Seu saldo atual é de {monto} {moneda}. Com prazer. Há mais alguma coisa em que eu possa ajudar? Perfeito, precisa de mais alguma coisa?"
+    },
+    {
+      "id": "tone-033",
+      "es": "Buenos días, con gusto le ayudo. Permítame un momento para verificar su saldo. Su saldo actual es de {monto} {moneda}. No hay problema, que tenga buen día.",
+      "pt": "Bom dia, terei prazer em ajudar. Vou verificar seu saldo. Seu saldo atual é de {monto} {moneda}. Sem problema, tenha um bom dia."
+    },
+    {
+      "id": "tone-034",
+      "es": "Buenos días, con gusto le ayudo. Permítame un momento para verificar su saldo. Su saldo actual es de {monto} {moneda}. No hay problema, que tenga buen día. Claro, estoy para servirle.",
+      "pt": "Bom dia, terei prazer em ajudar. Vou verificar seu saldo. Seu saldo atual é de {monto} {moneda}. Sem problema, tenha um bom dia. Claro, estou à disposição."
+    },
+    {
+      "id": "tone-035",
+      "es": "Buenos días, con gusto le ayudo. Permítame un momento para verificar su saldo. Su saldo actual es de {monto} {moneda}. No hay problema, que tenga buen día. Con gusto. ¿Hay algo más en lo que pueda ayudarle?",
+      "pt": "Bom dia, terei prazer em ajudar. Vou verificar seu saldo. Seu saldo atual é de {monto} {moneda}. Sem problema, tenha um bom dia. Com prazer. Há mais alguma coisa em que eu possa ajudar?"
+    },
+    {
+      "id": "tone-036",
+      "es": "Buenos días, con gusto le ayudo. Permítame un momento para verificar su saldo. Su saldo actual es de {monto} {moneda}. No hay problema, que tenga buen día. No hay problema, que tenga buen día.",
+      "pt": "Bom dia, terei prazer em ajudar. Vou verificar seu saldo. Seu saldo atual é de {monto} {moneda}. Sem problema, tenha um bom dia. Sem problema, tenha um bom dia."
+    },
+    {
+      "id": "tone-037",
+      "es": "Buenos días, con gusto le ayudo. Permítame un momento para verificar su saldo. Su saldo actual es de {monto} {moneda}. No hay problema, que tenga buen día. Perfecto, ¿necesita algo más?",
+      "pt": "Bom dia, terei prazer em ajudar. Vou verificar seu saldo. Seu saldo atual é de {monto} {moneda}. Sem problema, tenha um bom dia. Perfeito, precisa de mais alguma coisa?"
+    },
+    {
+      "id": "tone-038",
+      "es": "Buenos días, con gusto le ayudo. Permítame un momento para verificar su saldo. Su saldo actual es de {monto} {moneda}. Perfecto, ¿necesita algo más?",
+      "pt": "Bom dia, terei prazer em ajudar. Vou verificar seu saldo. Seu saldo atual é de {monto} {moneda}. Perfeito, precisa de mais alguma coisa?"
+    },
+    {
+      "id": "tone-039",
+      "es": "Buenos días, con gusto le ayudo. Permítame un momento para verificar su saldo. Su saldo actual es de {monto} {moneda}. Perfecto, ¿necesita algo más? Claro, estoy para servirle.",
+      "pt": "Bom dia, terei prazer em ajudar. Vou verificar seu saldo. Seu saldo atual é de {monto} {moneda}. Perfeito, precisa de mais alguma coisa? Claro, estou à disposição."
+    },
+    {
+      "id": "tone-040",
+      "es": "Buenos días, con gusto le ayudo. Permítame un momento para verificar su saldo. Su saldo actual es de {monto} {moneda}. Perfecto, ¿necesita algo más? Con gusto. ¿Hay algo más en lo que pueda ayudarle?",
+      "pt": "Bom dia, terei prazer em ajudar. Vou verificar seu saldo. Seu saldo atual é de {monto} {moneda}. Perfeito, precisa de mais alguma coisa? Com prazer. Há mais alguma coisa em que eu possa ajudar?"
+    },
+    {
+      "id": "tone-041",
+      "es": "Buenos días, con gusto le ayudo. Permítame un momento para verificar su saldo. Su saldo actual es de {monto} {moneda}. Perfecto, ¿necesita algo más? No hay problema, que tenga buen día.",
+      "pt": "Bom dia, terei prazer em ajudar. Vou verificar seu saldo. Seu saldo atual é de {monto} {moneda}. Perfeito, precisa de mais alguma coisa? Sem problema, tenha um bom dia."
+    },
+    {
+      "id": "tone-042",
+      "es": "Buenos días, con gusto le ayudo. Permítame un momento para verificar su saldo. Su saldo actual es de {monto} {moneda}. Perfecto, ¿necesita algo más? Perfecto, ¿necesita algo más?",
+      "pt": "Bom dia, terei prazer em ajudar. Vou verificar seu saldo. Seu saldo atual é de {monto} {moneda}. Perfeito, precisa de mais alguma coisa? Perfeito, precisa de mais alguma coisa?"
+    }
+  ]
+}

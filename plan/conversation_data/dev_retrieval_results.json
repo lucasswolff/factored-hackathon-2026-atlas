@@ -1,0 +1,751 @@
+{
+  "fact_version": "CONV-FACTS-2026-09-28-v1",
+  "case_file": "/home/lucas/factored-hackathon-2026-lone-wolff/plan/conversation_data/pilot_cases.jsonl",
+  "case_count": 24,
+  "retrieval_case_count": 17,
+  "workflow_only_case_ids": [
+    "ES-010",
+    "ES-011",
+    "ES-012",
+    "PT-006",
+    "PT-009",
+    "PT-010",
+    "PT-012"
+  ],
+  "fact_count": 22,
+  "retrievable_fact_count": 16,
+  "top_k": 5,
+  "status": "development draft; not independently held out",
+  "scope": "product-fact retrieval only; universal disclaimer and ACCESS facts are supplied by rules; no route, generated answer, or action assessed",
+  "methods": {
+    "keyword": {
+      "model": "exact-token IDF overlap",
+      "metrics": {
+        "all": {
+          "n": 17,
+          "hit_at_1": 0.4118,
+          "recall_at_k": 0.5588,
+          "mrr": 0.5375
+        },
+        "by_language": {
+          "es": {
+            "n": 9,
+            "hit_at_1": 0.5556,
+            "recall_at_k": 0.6111,
+            "mrr": 0.6529
+          },
+          "pt": {
+            "n": 8,
+            "hit_at_1": 0.25,
+            "recall_at_k": 0.5,
+            "mrr": 0.4077
+          }
+        },
+        "by_route": {
+          "ANSWER_FACT": {
+            "n": 9,
+            "hit_at_1": 0.4444,
+            "recall_at_k": 0.4444,
+            "mrr": 0.5513
+          },
+          "ASK_SIGN_IN": {
+            "n": 2,
+            "hit_at_1": 0.5,
+            "recall_at_k": 0.75,
+            "mrr": 0.6667
+          },
+          "CLARIFY": {
+            "n": 2,
+            "hit_at_1": 0.0,
+            "recall_at_k": 0.75,
+            "mrr": 0.225
+          },
+          "HANDOFF": {
+            "n": 4,
+            "hit_at_1": 0.5,
+            "recall_at_k": 0.625,
+            "mrr": 0.5982
+          }
+        }
+      },
+      "cases": [
+        {
+          "case_id": "ES-001",
+          "language": "es",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "FEE.MX",
+            "FEE.WAIVER"
+          ],
+          "top_k": [
+            "FEE.MX",
+            "FEE.AR",
+            "CATALOG.IDENTITY",
+            "UNKNOWN.COST",
+            "FEE.CO"
+          ],
+          "missing_at_k": [
+            "FEE.WAIVER"
+          ]
+        },
+        {
+          "case_id": "ES-002",
+          "language": "es",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "BENEFIT.HORIZON",
+            "BENEFIT.REWARDS",
+            "FEE.CO",
+            "FEE.WAIVER"
+          ],
+          "top_k": [
+            "FEE.CO",
+            "CATALOG.IDENTITY",
+            "FEE.WAIVER",
+            "FEE.AR",
+            "FEE.MX"
+          ],
+          "missing_at_k": [
+            "BENEFIT.HORIZON",
+            "BENEFIT.REWARDS"
+          ]
+        },
+        {
+          "case_id": "ES-003",
+          "language": "es",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "FEE.AR",
+            "FEE.AR_REVIEW"
+          ],
+          "top_k": [
+            "FEE.AR",
+            "CATALOG.IDENTITY",
+            "RATE.AR",
+            "FEE.MX",
+            "UNKNOWN.COST"
+          ],
+          "missing_at_k": [
+            "FEE.AR_REVIEW"
+          ]
+        },
+        {
+          "case_id": "ES-004",
+          "language": "es",
+          "route": "HANDOFF",
+          "gold_retrieval": [
+            "RATE.MX",
+            "UNKNOWN.COST"
+          ],
+          "top_k": [
+            "UNKNOWN.COST",
+            "FEE.MX",
+            "CATALOG.IDENTITY",
+            "RATE.MX",
+            "MILES.HISTORY"
+          ],
+          "missing_at_k": []
+        },
+        {
+          "case_id": "ES-005",
+          "language": "es",
+          "route": "ASK_SIGN_IN",
+          "gold_retrieval": [
+            "BENEFIT.CAMPUS",
+            "FEE.CO"
+          ],
+          "top_k": [
+            "FEE.CO",
+            "CATALOG.IDENTITY",
+            "RATE.CO",
+            "FEE.AR",
+            "FEE.MX"
+          ],
+          "missing_at_k": [
+            "BENEFIT.CAMPUS"
+          ]
+        },
+        {
+          "case_id": "ES-006",
+          "language": "es",
+          "route": "CLARIFY",
+          "gold_retrieval": [
+            "CATALOG.IDENTITY"
+          ],
+          "top_k": [
+            "BENEFIT.CAMPUS",
+            "BENEFIT.HORIZON",
+            "BENEFIT.REWARDS",
+            "BENEFIT.SUMMIT",
+            "CATALOG.IDENTITY"
+          ],
+          "missing_at_k": []
+        },
+        {
+          "case_id": "ES-007",
+          "language": "es",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "BENEFIT.REWARDS",
+            "MILES.HISTORY"
+          ],
+          "top_k": [
+            "FEE.MX",
+            "CATALOG.IDENTITY",
+            "FEE.AR",
+            "UNKNOWN.COST",
+            "FEE.CO"
+          ],
+          "missing_at_k": [
+            "BENEFIT.REWARDS",
+            "MILES.HISTORY"
+          ]
+        },
+        {
+          "case_id": "ES-008",
+          "language": "es",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "BENEFIT.SUMMIT",
+            "MILES.HISTORY"
+          ],
+          "top_k": [
+            "FEE.MX",
+            "FEE.AR",
+            "FEE.CO",
+            "CATALOG.IDENTITY",
+            "BENEFIT.SUMMIT"
+          ],
+          "missing_at_k": [
+            "MILES.HISTORY"
+          ]
+        },
+        {
+          "case_id": "ES-009",
+          "language": "es",
+          "route": "ASK_SIGN_IN",
+          "gold_retrieval": [
+            "CATALOG.IDENTITY"
+          ],
+          "top_k": [
+            "FEE.MX",
+            "UNKNOWN.COST",
+            "CATALOG.IDENTITY",
+            "RATE.MX",
+            "BENEFIT.CAMPUS"
+          ],
+          "missing_at_k": []
+        },
+        {
+          "case_id": "PT-001",
+          "language": "pt",
+          "route": "HANDOFF",
+          "gold_retrieval": [
+            "BENEFIT.SUMMIT",
+            "UNKNOWN.TRAVEL"
+          ],
+          "top_k": [
+            "FEE.MX",
+            "CATALOG.IDENTITY",
+            "FEE.AR",
+            "UNKNOWN.COST",
+            "FEE.CO"
+          ],
+          "missing_at_k": [
+            "BENEFIT.SUMMIT",
+            "UNKNOWN.TRAVEL"
+          ]
+        },
+        {
+          "case_id": "PT-002",
+          "language": "pt",
+          "route": "HANDOFF",
+          "gold_retrieval": [
+            "RATE.AR",
+            "UNKNOWN.COST"
+          ],
+          "top_k": [
+            "RATE.AR",
+            "UNKNOWN.COST",
+            "FEE.AR",
+            "CATALOG.IDENTITY",
+            "FEE.MX"
+          ],
+          "missing_at_k": []
+        },
+        {
+          "case_id": "PT-003",
+          "language": "pt",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "FEE.CO",
+            "FEE.WAIVER"
+          ],
+          "top_k": [
+            "FEE.CO",
+            "CATALOG.IDENTITY",
+            "FEE.WAIVER",
+            "RATE.CO",
+            "FEE.AR"
+          ],
+          "missing_at_k": []
+        },
+        {
+          "case_id": "PT-004",
+          "language": "pt",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "BENEFIT.REWARDS",
+            "MILES.HISTORY"
+          ],
+          "top_k": [
+            "FEE.MX",
+            "CATALOG.IDENTITY",
+            "FEE.AR",
+            "UNKNOWN.COST",
+            "FEE.CO"
+          ],
+          "missing_at_k": [
+            "BENEFIT.REWARDS",
+            "MILES.HISTORY"
+          ]
+        },
+        {
+          "case_id": "PT-005",
+          "language": "pt",
+          "route": "CLARIFY",
+          "gold_retrieval": [
+            "CATALOG.IDENTITY",
+            "FEE.WAIVER"
+          ],
+          "top_k": [
+            "FEE.AR",
+            "FEE.MX",
+            "FEE.CO",
+            "CATALOG.IDENTITY",
+            "BENEFIT.REWARDS"
+          ],
+          "missing_at_k": [
+            "FEE.WAIVER"
+          ]
+        },
+        {
+          "case_id": "PT-007",
+          "language": "pt",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "BENEFIT.CAMPUS"
+          ],
+          "top_k": [
+            "CATALOG.IDENTITY",
+            "FEE.AR",
+            "BENEFIT.CAMPUS",
+            "BENEFIT.HORIZON",
+            "RATE.AR"
+          ],
+          "missing_at_k": []
+        },
+        {
+          "case_id": "PT-008",
+          "language": "pt",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "BENEFIT.SUMMIT",
+            "MILES.HISTORY"
+          ],
+          "top_k": [
+            "FEE.MX",
+            "CATALOG.IDENTITY",
+            "FEE.AR",
+            "UNKNOWN.COST",
+            "FEE.CO"
+          ],
+          "missing_at_k": [
+            "BENEFIT.SUMMIT",
+            "MILES.HISTORY"
+          ]
+        },
+        {
+          "case_id": "PT-011",
+          "language": "pt",
+          "route": "HANDOFF",
+          "gold_retrieval": [
+            "BENEFIT.REWARDS",
+            "UNKNOWN.TRAVEL"
+          ],
+          "top_k": [
+            "RATE.CO",
+            "FEE.CO",
+            "CATALOG.IDENTITY",
+            "BENEFIT.REWARDS",
+            "FEE.AR"
+          ],
+          "missing_at_k": [
+            "UNKNOWN.TRAVEL"
+          ]
+        }
+      ]
+    },
+    "e5": {
+      "model": "intfloat/multilingual-e5-small",
+      "metrics": {
+        "all": {
+          "n": 17,
+          "hit_at_1": 0.5882,
+          "recall_at_k": 0.6618,
+          "mrr": 0.7216
+        },
+        "by_language": {
+          "es": {
+            "n": 9,
+            "hit_at_1": 0.4444,
+            "recall_at_k": 0.5833,
+            "mrr": 0.6038
+          },
+          "pt": {
+            "n": 8,
+            "hit_at_1": 0.75,
+            "recall_at_k": 0.75,
+            "mrr": 0.8542
+          }
+        },
+        "by_route": {
+          "ANSWER_FACT": {
+            "n": 9,
+            "hit_at_1": 0.7778,
+            "recall_at_k": 0.75,
+            "mrr": 0.8704
+          },
+          "ASK_SIGN_IN": {
+            "n": 2,
+            "hit_at_1": 0.0,
+            "recall_at_k": 0.5,
+            "mrr": 0.2381
+          },
+          "CLARIFY": {
+            "n": 2,
+            "hit_at_1": 0.0,
+            "recall_at_k": 0.25,
+            "mrr": 0.2292
+          },
+          "HANDOFF": {
+            "n": 4,
+            "hit_at_1": 0.75,
+            "recall_at_k": 0.75,
+            "mrr": 0.875
+          }
+        }
+      },
+      "cases": [
+        {
+          "case_id": "ES-001",
+          "language": "es",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "FEE.MX",
+            "FEE.WAIVER"
+          ],
+          "top_k": [
+            "BENEFIT.REWARDS",
+            "FEE.AR",
+            "FEE.MX",
+            "RATE.MX",
+            "FEE.AR_REVIEW"
+          ],
+          "missing_at_k": [
+            "FEE.WAIVER"
+          ]
+        },
+        {
+          "case_id": "ES-002",
+          "language": "es",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "BENEFIT.HORIZON",
+            "BENEFIT.REWARDS",
+            "FEE.CO",
+            "FEE.WAIVER"
+          ],
+          "top_k": [
+            "FEE.CO",
+            "CATALOG.IDENTITY",
+            "BENEFIT.HORIZON",
+            "FEE.AR",
+            "FEE.WAIVER"
+          ],
+          "missing_at_k": [
+            "BENEFIT.REWARDS"
+          ]
+        },
+        {
+          "case_id": "ES-003",
+          "language": "es",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "FEE.AR",
+            "FEE.AR_REVIEW"
+          ],
+          "top_k": [
+            "FEE.AR",
+            "BENEFIT.SUMMIT",
+            "FEE.AR_REVIEW",
+            "FEE.CO",
+            "FEE.MX"
+          ],
+          "missing_at_k": []
+        },
+        {
+          "case_id": "ES-004",
+          "language": "es",
+          "route": "HANDOFF",
+          "gold_retrieval": [
+            "RATE.MX",
+            "UNKNOWN.COST"
+          ],
+          "top_k": [
+            "UNKNOWN.COST",
+            "BENEFIT.SUMMIT",
+            "RATE.MX",
+            "CATALOG.IDENTITY",
+            "FEE.MX"
+          ],
+          "missing_at_k": []
+        },
+        {
+          "case_id": "ES-005",
+          "language": "es",
+          "route": "ASK_SIGN_IN",
+          "gold_retrieval": [
+            "BENEFIT.CAMPUS",
+            "FEE.CO"
+          ],
+          "top_k": [
+            "CATALOG.IDENTITY",
+            "FEE.WAIVER",
+            "BENEFIT.CAMPUS",
+            "FEE.CO",
+            "BENEFIT.HORIZON"
+          ],
+          "missing_at_k": []
+        },
+        {
+          "case_id": "ES-006",
+          "language": "es",
+          "route": "CLARIFY",
+          "gold_retrieval": [
+            "CATALOG.IDENTITY"
+          ],
+          "top_k": [
+            "BENEFIT.REWARDS",
+            "MILES.HISTORY",
+            "FEE.AR_REVIEW",
+            "FEE.AR",
+            "BENEFIT.SUMMIT"
+          ],
+          "missing_at_k": [
+            "CATALOG.IDENTITY"
+          ]
+        },
+        {
+          "case_id": "ES-007",
+          "language": "es",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "BENEFIT.REWARDS",
+            "MILES.HISTORY"
+          ],
+          "top_k": [
+            "FEE.MX",
+            "BENEFIT.REWARDS",
+            "FEE.WAIVER",
+            "FEE.AR",
+            "RATE.MX"
+          ],
+          "missing_at_k": [
+            "MILES.HISTORY"
+          ]
+        },
+        {
+          "case_id": "ES-008",
+          "language": "es",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "BENEFIT.SUMMIT",
+            "MILES.HISTORY"
+          ],
+          "top_k": [
+            "BENEFIT.SUMMIT",
+            "FEE.AR",
+            "BENEFIT.REWARDS",
+            "RATE.AR",
+            "FEE.AR_REVIEW"
+          ],
+          "missing_at_k": [
+            "MILES.HISTORY"
+          ]
+        },
+        {
+          "case_id": "ES-009",
+          "language": "es",
+          "route": "ASK_SIGN_IN",
+          "gold_retrieval": [
+            "CATALOG.IDENTITY"
+          ],
+          "top_k": [
+            "RATE.MX",
+            "BENEFIT.REWARDS",
+            "FEE.MX",
+            "UNKNOWN.COST",
+            "FEE.AR"
+          ],
+          "missing_at_k": [
+            "CATALOG.IDENTITY"
+          ]
+        },
+        {
+          "case_id": "PT-001",
+          "language": "pt",
+          "route": "HANDOFF",
+          "gold_retrieval": [
+            "BENEFIT.SUMMIT",
+            "UNKNOWN.TRAVEL"
+          ],
+          "top_k": [
+            "CATALOG.IDENTITY",
+            "BENEFIT.SUMMIT",
+            "FEE.AR",
+            "FEE.MX",
+            "BENEFIT.REWARDS"
+          ],
+          "missing_at_k": [
+            "UNKNOWN.TRAVEL"
+          ]
+        },
+        {
+          "case_id": "PT-002",
+          "language": "pt",
+          "route": "HANDOFF",
+          "gold_retrieval": [
+            "RATE.AR",
+            "UNKNOWN.COST"
+          ],
+          "top_k": [
+            "UNKNOWN.COST",
+            "FEE.AR",
+            "RATE.AR",
+            "FEE.AR_REVIEW",
+            "FEE.WAIVER"
+          ],
+          "missing_at_k": []
+        },
+        {
+          "case_id": "PT-003",
+          "language": "pt",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "FEE.CO",
+            "FEE.WAIVER"
+          ],
+          "top_k": [
+            "FEE.CO",
+            "FEE.WAIVER",
+            "BENEFIT.REWARDS",
+            "RATE.CO",
+            "CATALOG.IDENTITY"
+          ],
+          "missing_at_k": []
+        },
+        {
+          "case_id": "PT-004",
+          "language": "pt",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "BENEFIT.REWARDS",
+            "MILES.HISTORY"
+          ],
+          "top_k": [
+            "BENEFIT.REWARDS",
+            "FEE.WAIVER",
+            "FEE.MX",
+            "CATALOG.IDENTITY",
+            "FEE.AR"
+          ],
+          "missing_at_k": [
+            "MILES.HISTORY"
+          ]
+        },
+        {
+          "case_id": "PT-005",
+          "language": "pt",
+          "route": "CLARIFY",
+          "gold_retrieval": [
+            "CATALOG.IDENTITY",
+            "FEE.WAIVER"
+          ],
+          "top_k": [
+            "BENEFIT.REWARDS",
+            "FEE.AR",
+            "FEE.WAIVER",
+            "FEE.MX",
+            "FEE.CO"
+          ],
+          "missing_at_k": [
+            "CATALOG.IDENTITY"
+          ]
+        },
+        {
+          "case_id": "PT-007",
+          "language": "pt",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "BENEFIT.CAMPUS"
+          ],
+          "top_k": [
+            "BENEFIT.CAMPUS",
+            "CATALOG.IDENTITY",
+            "FEE.AR",
+            "UNKNOWN.COST",
+            "FEE.WAIVER"
+          ],
+          "missing_at_k": []
+        },
+        {
+          "case_id": "PT-008",
+          "language": "pt",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "BENEFIT.SUMMIT",
+            "MILES.HISTORY"
+          ],
+          "top_k": [
+            "MILES.HISTORY",
+            "BENEFIT.REWARDS",
+            "UNKNOWN.COST",
+            "RATE.MX",
+            "BENEFIT.SUMMIT"
+          ],
+          "missing_at_k": []
+        },
+        {
+          "case_id": "PT-011",
+          "language": "pt",
+          "route": "HANDOFF",
+          "gold_retrieval": [
+            "BENEFIT.REWARDS",
+            "UNKNOWN.TRAVEL"
+          ],
+          "top_k": [
+            "BENEFIT.REWARDS",
+            "FEE.CO",
+            "CATALOG.IDENTITY",
+            "RATE.CO",
+            "BENEFIT.SUMMIT"
+          ],
+          "missing_at_k": [
+            "UNKNOWN.TRAVEL"
+          ]
+        }
+      ]
+    }
+  }
+}

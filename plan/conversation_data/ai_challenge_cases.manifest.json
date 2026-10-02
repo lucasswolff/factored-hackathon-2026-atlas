@@ -1,0 +1,10 @@
+{
+  "status": "AI-authored and AI-judged challenge set; no human validation",
+  "fact_version": "CONV-FACTS-2026-09-29-v3",
+  "author_model": "claude-haiku-4-5-20251001",
+  "prompt_sha256": "4d6e3778c8310eb790daaf23f6ee46c01d5926b0ea25742ab10c5a246a3c82eb",
+  "labels_sha256": "c3d2aadfeee5a87234334928a223c2da02b014ea2eebfe6a000034e54a65b50b",
+  "cases_sha256": "d15b5e86cd9605518a6ac091fde821d1e36e2a0e18803b9da62e054bec02c699",
+  "case_count": 24,
+  "caveat": "Semantic overlap with development scenarios remains possible; do not claim independent human held-out performance."
+}

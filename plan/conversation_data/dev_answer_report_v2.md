@@ -1,0 +1,10 @@
+# Claude Sonnet development answer check, v2
+
+**Status: development only, 2026-09-29.** The two specification gaps in the [first answer check](dev_answer_report.md) were resolved before this run:
+
+- A dated historical miles question now receives a verified `FX.HISTORICAL` row from the supplied exchange-rate CSV. `ES-007` receives the 2025-08-31 direct MXN→USD rate `0.057989`; the model does not see its expected numeric answer or gold labels. The pilot supplies the lookup date and currency as structured test context; natural-language extraction and a production FX tool are not evaluated here.
+- A simulated precheck is optional before a mock application. Asking whether one can apply now routes to `ASK_APPLICATION_CONFIRMATION`; an application can be created only after explicit confirmation in a trusted session. `PT-012` was relabeled accordingly in the draft pilot.
+
+With fact snapshot `CONV-FACTS-2026-09-29-v2`, E5 top-five retrieval, mandatory access/unknown facts, and Claude `claude-sonnet-5`, all **24/24** cases returned parseable structured responses, all citation IDs were supplied in the prompt, and **23/24 draft route labels matched**. The remaining mismatch was `ES-005`: Sonnet answered the public Campus fee question and mentioned sign-in later, but selected `ANSWER_FACT` instead of the draft's `ASK_SIGN_IN` route for the accompanying personal approval question. A reviewer should judge whether the answer sufficiently covers that boundary and note its mixed Spanish/English terminology.
+
+These counts do **not** establish factual grounding, natural bilingual style, safe automated resolution, or held-out performance. The answer set and blind review packets are exported locally under the ignored `review_exports/` directory. With one bilingual collaborator, share the held-out writer packet first and freeze new prompts before they see pilot cases. Have them label held-out and pilot cases blind to model answers, and only afterward share the Sonnet answer packet. Report the single-reviewer limitation and record supported/unsupported claims and failures, not just route matches.

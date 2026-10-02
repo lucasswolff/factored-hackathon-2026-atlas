@@ -1,0 +1,40 @@
+{
+  "status": "AI-authored provisional challenge prompts; labels pending",
+  "created_date": "2026-09-29",
+  "fact_version": "CONV-FACTS-2026-09-29-v3",
+  "author_model": "claude-haiku-4-5-20251001",
+  "case_count": 24,
+  "source_sha256": "9e2373e1840f47de6a9c05c6b2e70e1454fa0b28a104d9fd392b07e0316c1d27",
+  "prompts_sha256": "4d6e3778c8310eb790daaf23f6ee46c01d5926b0ea25742ab10c5a246a3c82eb",
+  "api_usage": [
+    {
+      "input_tokens": 3595,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1897,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    {
+      "input_tokens": 3595,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1658,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    }
+  ],
+  "author_input_excludes": [
+    "pilot_cases",
+    "development_reports",
+    "model_answers"
+  ]
+}

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#112b38">
+  <title>Card Atlas · Advisor demo</title>
+  <link rel="stylesheet" href="/assets/app.css">
+  <script src="/assets/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">✳</span><span>card atlas<span class="brand-dot">.</span></span></div>
+    <span class="header-label">CREDIT ADVISOR <span class="demo-pill">INTERACTIVE DEMO</span></span>
+    <a class="review-link" href="/review" target="_blank" rel="noopener">Review queue ↗</a>
+    <button id="homeButton" class="top-link" type="button" hidden>← Choose another journey</button>
+  </header>
+
+  <main>
+    <section id="landing" class="landing">
+      <div class="hero">
+        <div class="eyebrow"><span class="eyebrow-line"></span> EXPLORE THE EXPERIENCE</div>
+        <h1>A better card conversation <em>starts here.</em></h1>
+        <p>Explore a card offer or start a general conversation. Choose your country and language to begin.</p>
+        <div class="selectors">
+          <label>Customer country
+            <select id="countrySelect"><option>Colombia</option><option>México</option><option>Argentina</option></select>
+          </label>
+          <label>Conversation language
+            <select id="languageSelect"><option value="es">Español</option><option value="pt">Português</option></select>
+          </label>
+        </div>
+      </div>
+      <div class="section-title"><div><span class="overline">PATH 01</span><h2>Explore a card offer</h2></div><p>Choose a card to learn about its benefits, costs, and next steps.</p></div>
+      <div id="campaignGrid" class="campaign-grid"></div>
+      <div class="direct-card"><div class="direct-icon">↗</div><div><span class="overline">PATH 02 · DIRECT VISIT</span><h2>Just exploring?</h2><p>Choose a demo customer and begin a general conversation about the cards.</p></div><button id="directButton" class="button button-light" type="button">Start without a campaign <span>→</span></button></div>
+      <p class="landing-note">Demo-only offers and policy. No real credit decision, application, or human assignment is made here.</p>
+    </section>
+
+    <section id="login" class="login" hidden>
+      <div class="login-card">
+        <span class="overline">DEMO CUSTOMER</span>
+        <h1>Choose a demo customer.</h1>
+        <p id="loginContext" class="muted"></p>
+        <label class="field-label" for="loginPersonaSelect">Choose a customer for this experience</label>
+        <select id="loginPersonaSelect" class="wide-select"></select>
+        <div id="loginPreview" class="login-preview" aria-live="polite"></div>
+        <button id="continueButton" class="button button-primary full" type="button">Continue to advisor <span>→</span></button>
+        <p class="quiet-note">These are fictional test profiles, not real bank accounts. Choosing one lets the advisor use its profile details. Card prechecks ask separately.</p>
+      </div>
+    </section>
+
+    <section id="workspace" class="workspace" hidden>
+      <aside class="journey-panel">
+        <div class="panel-heading"><span class="overline">YOUR JOURNEY</span><span class="live-dot">LIVE DEMO</span></div>
+        <h2 id="journeyTitle">Explore cards</h2>
+        <p id="journeySubtitle" class="muted"></p>
+        <div id="journeySteps" class="journey-steps"></div>
+        <div class="divider"></div>
+        <div class="panel-heading"><span class="overline">DEMO CUSTOMER</span><span class="hint">SELECTED</span></div>
+        <div id="selectedPersona" class="selected-persona"></div>
+        <button id="signoutButton" class="text-button" type="button">Sign out</button>
+        <div class="divider"></div>
+        <div class="panel-heading"><span class="overline">WHAT'S NEXT?</span></div>
+        <p class="small-copy">Ask the advisor which card fits you, whether you can take an initial eligibility check, or how to apply. The advisor will ask for any needed consent and confirmation here in the chat.</p>
+        <p class="quiet-note">Applications and human requests create local mock records for review. No employee is assigned automatically.</p>
+      </aside>
+
+      <section class="chat-panel" aria-label="Advisor conversation">
+        <div class="chat-header"><div class="advisor-avatar">✳</div><div><strong>Card advisor</strong><span>Product information · Español / Português</span></div></div>
+        <div id="chatMessages" class="chat-messages" aria-live="polite"></div>
+        <div class="chat-footer"><div id="promptChips" class="prompt-chips"></div><form id="chatForm" class="composer"><label class="sr-only" for="messageInput">Your message</label><textarea id="messageInput" rows="1" maxlength="2000" placeholder="Ask about benefits, fees, or how a card works…"></textarea><button id="sendButton" type="submit" aria-label="Send message">↗</button></form><div class="composer-note"><span>Product questions may go to Claude. Do not enter personal identifiers. Profile data and policy checks stay local.</span><span id="chatStatus"></span></div></div>
+      </section>
+
+      <aside class="evidence-panel"><div class="panel-heading"><span class="overline">BEHIND THE ANSWER</span><span class="trace-icon">⌁</span></div><h2>What the advisor knows</h2><p class="small-copy">Follow the source, permissions, and policy decisions as you explore.</p><div id="evidenceContent"></div></aside>
+    </section>
+  </main>
+  <div id="toast" class="toast" role="alert" hidden></div>
+</body>
+</html>

@@ -1,0 +1,20 @@
+__pycache__/
+*.pyc
+*.sqlite
+*.sqlite-*
+.env
+.env.*
+!.env.example
+plan/conversation_data/review_exports/
+advisor/.local/
+# Local organizer data is loaded separately from the shared AWS source.
+# Keep the small, team-prepared tone JSON under data/derived/ trackable.
+/data/**/*.csv
+# Organizer PDFs are participant-only and include source access credentials.
+/docs/factored_docs/*.pdf
+# Local Terraform artifacts and state; never commit them.
+/infra/aws/.terraform/
+/infra/aws/*.tfstate
+/infra/aws/*.tfstate.*
+/infra/aws/advisor.zip
+/infra/aws/*.tfvars

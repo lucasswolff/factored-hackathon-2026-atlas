@@ -1,0 +1,210 @@
+"""Security and persistence checks for the source-data-free hosted mode."""
+
+from __future__ import annotations
+
+import base64
+import http.client
+import json
+import os
+import tempfile
+import threading
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+from advisor.applications import ApplicationStore
+from advisor.service import Conversation
+from advisor.synthetic_data import SyntheticDirectory
+from advisor.web import AdvisorServer, DemoLimitError, WebApp
+
+
+class HostedTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.env = patch.dict(os.environ, {
+            "ADVISOR_REVIEW_CODE": "review-test-code-9876543210",
+        })
+        cls.env.start()
+        cls.tempdir = tempfile.TemporaryDirectory()
+        cls.path = Path(cls.tempdir.name) / "applications.sqlite"
+        cls.app = WebApp(applications=ApplicationStore(cls.path), hosted=True, answer_limit=2)
+        cls.server = AdvisorServer(("127.0.0.1", 0), cls.app)
+        cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
+        cls.thread.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.server.shutdown()
+        cls.server.server_close()
+        cls.thread.join(timeout=5)
+        cls.tempdir.cleanup()
+        cls.env.stop()
+
+    def setUp(self):
+        self.cookie = None
+
+    def request(self, method, path, body=None, role=None, code=None, origin=None):
+        conn = http.client.HTTPConnection("127.0.0.1", self.server.server_port, timeout=10)
+        headers = {}
+        if self.cookie:
+            headers["Cookie"] = self.cookie
+        if role:
+            value = base64.b64encode(f"{role}:{code}".encode()).decode()
+            headers["Authorization"] = f"Basic {value}"
+        if origin:
+            headers["Origin"] = origin
+        if body is not None:
+            headers["Content-Type"] = "application/json"
+            body = json.dumps(body)
+        conn.request(method, path, body=body, headers=headers)
+        response = conn.getresponse()
+        data = response.read()
+        cookie = response.getheader("Set-Cookie")
+        if cookie:
+            self.cookie = cookie.split(";", 1)[0]
+        result = (response.status, json.loads(data) if response.getheader("Content-Type", "").startswith("application/json") else data,
+                  dict(response.getheaders()))
+        conn.close()
+        return result
+
+    def judge(self, method, path, body=None, **kw):
+        return self.request(method, path, body, **kw)
+
+    def reviewer(self, method, path, body=None):
+        return self.request(method, path, body, "reviewer", os.environ["ADVISOR_REVIEW_CODE"])
+
+    def test_public_judge_uses_team_fixtures_and_review_requires_credentials(self):
+        self.assertIsInstance(self.app.directory, SyntheticDirectory)
+        self.assertEqual(self.request("GET", "/healthz")[0], 200)
+        self.assertEqual(self.request("GET", "/")[0], 200)
+        self.assertEqual(self.request("GET", "/api/state")[0], 200)
+        self.assertEqual(self.request("GET", "/review")[0], 401)
+        self.assertEqual(self.judge("GET", "/review")[0], 401)
+        self.assertEqual(self.request("GET", "/api/review", role="reviewer", code="wrong-code")[0], 401)
+        self.assertEqual(self.reviewer("GET", "/review")[0], 200)
+        self.cookie = None
+        status, state, headers = self.judge("GET", "/api/state")
+        self.assertEqual(status, 200)
+        self.assertIn("Secure", headers["Set-Cookie"])
+        self.assertFalse(state["review_available"])
+        self.assertEqual(len(state["personas"]), 10)
+        self.assertEqual({p["country"] for p in state["personas"]}, {"Colombia", "México", "Argentina"})
+        status, preview, _ = self.judge("POST", "/api/persona-preview", {"alias": "P02"})
+        self.assertEqual(status, 200)
+        self.assertEqual(preview["persona"]["source"], "TEAM_GENERATED_DEMO_FIXTURE")
+        self.assertNotIn("customer_id", json.dumps(preview))
+
+    def test_fixture_binding_expiry_and_origin(self):
+        self.judge("GET", "/")
+        status, _, _ = self.judge("POST", "/api/start", {
+            "entry": "direct", "country": "México", "language": "es", "alias": "P05"},
+            origin="https://another.example")
+        self.assertEqual(status, 403)
+        status, state, _ = self.judge("POST", "/api/start", {
+            "entry": "direct", "country": "México", "language": "es", "alias": "P05"})
+        self.assertEqual(status, 200)
+        self.assertEqual(state["profile"]["source"], "TEAM_GENERATED_DEMO_FIXTURE")
+        self.assertEqual(self.judge("POST", "/api/start", {
+            "entry": "direct", "country": "México", "language": "es", "alias": "P08"})[0], 400)
+        self.assertEqual(self.judge("POST", "/api/start", {
+            "entry": "direct", "country": "Colombia", "language": "es", "alias": "P01"})[0], 400)
+        sid = self.cookie.split("=", 1)[1]
+        self.app.sessions[sid].last_active_at -= 2 * 60 * 60 + 1
+        status, state, _ = self.judge("GET", "/api/state")
+        self.assertEqual(status, 200)
+        self.assertIsNone(state["conversation"])
+        self.assertIsNone(state["profile"])
+
+    def test_active_session_outlives_creation_time(self):
+        self.judge("GET", "/")
+        status, _, _ = self.judge("POST", "/api/start", {
+            "entry": "direct", "country": "Colombia", "language": "es", "alias": "P04"})
+        self.assertEqual(status, 200)
+        sid = self.cookie.split("=", 1)[1]
+        state = self.app.sessions[sid]
+        state.created_at -= 3 * 60 * 60
+        state.last_active_at -= 60 * 60
+        status, result, headers = self.judge("POST", "/api/persona-preview", {"alias": "P04"})
+        self.assertEqual(status, 200)
+        self.assertEqual(result["persona"]["alias"], "P04")
+        self.assertIn("Max-Age=7200", headers["Set-Cookie"])
+        self.assertEqual(self.judge("GET", "/api/state")[1]["conversation"]["demo_alias"], "P04")
+
+    def test_application_persists_and_review_is_protected(self):
+        self.judge("GET", "/")
+        self.judge("POST", "/api/start", {"entry": "direct", "country": "Argentina",
+                                          "language": "es", "alias": "P06"})
+        _, state, _ = self.judge("POST", "/api/chat", {"message": "Quiero solicitar Horizon"})
+        self.assertEqual(state["events"][-1]["route"], "ASK_PRECHECK_CONSENT")
+        self.judge("POST", "/api/chat", {"message": "no"})
+        status, state, _ = self.judge("POST", "/api/chat", {"message": "sí"})
+        self.assertEqual(status, 200)
+        reference = state["application"]["application_id"]
+        self.assertEqual(state["application"]["status"], "PENDING_REVIEW")
+        self.assertEqual(self.judge("GET", "/api/review")[0], 401)
+        status, queue, _ = self.reviewer("GET", "/api/review")
+        self.assertEqual(status, 200)
+        self.assertIn(reference, [row["application_id"] for row in queue["applications"]])
+        reopened = ApplicationStore(self.path)
+        self.assertEqual(reopened.read(self.app.sessions[self.cookie.split("=", 1)[1]].conversation_id,
+                                       "Horizon")["application_id"], reference)
+
+    def test_pending_application_can_switch_to_other_card_suggestion(self):
+        self.judge("GET", "/")
+        self.judge("POST", "/api/start", {"entry": "campaign", "campaign_id": "CMP-NM2UHJMKPA0C",
+                                           "country": "México", "language": "pt", "alias": "P05"})
+        self.judge("POST", "/api/chat", {"message": "quero esse cartão"})
+        _, state, _ = self.judge("POST", "/api/chat", {"message": "sim"})
+        self.assertEqual(state["events"][-1]["route"], "APPLICATION_CONFIRM")
+        _, state, _ = self.judge("POST", "/api/chat", {"message": "qual outro cartão posso solicitar que atenda meus critérios?"})
+        self.assertEqual(state["events"][-1]["route"], "POLICY_SUGGESTION")
+        self.assertIsNone(state["pending_action"])
+        self.assertIsNone(state["application_draft"])
+        self.assertIsNone(state["application"])
+        _, state, _ = self.judge("POST", "/api/chat", {"message": "outro cartão"})
+        self.assertEqual(state["events"][-1]["route"], "POLICY_SUGGESTION")
+
+    def test_pending_application_can_answer_benefits_then_reenter(self):
+        self.judge("GET", "/")
+        self.judge("POST", "/api/start", {"entry": "campaign", "campaign_id": "CMP-N3I2U4V7H3KU",
+                                           "country": "Argentina", "language": "es", "alias": "P06"})
+        self.judge("POST", "/api/chat", {"message": "Quiero esta tarjeta."})
+        _, state, _ = self.judge("POST", "/api/chat", {"message": "si"})
+        self.assertEqual(state["events"][-1]["route"], "APPLICATION_CONFIRM")
+        with patch.object(self.app, "_consume_model_attempt"), patch("advisor.service._generate", return_value={
+            "answer": "Summit ofrece beneficios de viaje sujetos a sus condiciones.",
+            "citations": ["BENEFIT.SUMMIT"]}):
+            _, state, _ = self.judge("POST", "/api/chat", {"message": "¿Qué beneficios tiene esta tarjeta?"})
+        self.assertEqual(state["events"][-1]["route"], "ANSWER_FACT")
+        self.assertIsNone(state["pending_action"])
+        _, state, _ = self.judge("POST", "/api/chat", {"message": "¿Qué tarjeta me recomiendas?"})
+        self.assertEqual(state["events"][-1]["route"], "POLICY_SUGGESTION")
+        _, state, _ = self.judge("POST", "/api/chat", {"message": "Quiero solicitar esta tarjeta"})
+        self.assertEqual(state["events"][-1]["route"], "APPLICATION_CONFIRM")
+
+    def test_limits_refuse_without_calling_model(self):
+        self.judge("GET", "/")
+        sid = self.cookie.split("=", 1)[1]
+        state = self.app.sessions[sid]
+        state.request_times = [__import__("time").time()] * 60
+        self.assertEqual(self.judge("POST", "/api/persona-preview", {"alias": "P01"})[0], 429)
+        with patch("advisor.service._generate") as model:
+            self.app.answer_count = 2
+            with self.assertRaises(DemoLimitError):
+                self.app.limited_respond(Conversation.start("es", "Colombia"),
+                                         "¿Cuál es la cuota anual de Rewards?")
+            model.assert_not_called()
+
+    def test_retry_cannot_exceed_provider_call_cap(self):
+        app = WebApp(hosted=True, answer_limit=1)
+        with patch("advisor.service._generate", return_value={
+                "answer": "Vou registrar seu pedido.", "citations": ["RATE.MX"]}) as model:
+            with self.assertRaises(DemoLimitError):
+                app.limited_respond(Conversation.start("pt", "México", selected_card="Campus"),
+                                    "Qual é a taxa do Campus?")
+        self.assertEqual(model.call_count, 1)
+        self.assertEqual(app.answer_count, 1)
+
+
+if __name__ == "__main__":
+    unittest.main()

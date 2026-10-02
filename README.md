@@ -6,6 +6,9 @@ data dictionary contains participant-only source access credentials. References
 to those PDFs in planning documents refer to local participant copies. The
 [judge rehearsal](docs/judge_rehearsal_2026-10-02.md) records the latest deployed
 workflow and bounded concurrency results.
+The [AWS deployment guide](infra/aws/README.md#automatic-code-deployment-from-protected-main)
+describes the pull-request test and automatic deployment triggered by a push
+to protected `main`.
 
 The planned project is an AI-assisted **Credit-Product Info & Eligibility Support** workflow. A visitor clicks a campaign card tied to a named offer or opens the advisor directly, then chooses an allowlisted demo customer before asking questions in Spanish or Portuguese. That choice enables profile-based suggestions; it is not real authentication. A card-specific precheck needs separate chat consent. An anonymous income entry does not produce a suggestion. After a separate chat confirmation, the browser can record a **mock application** for human review. Verified human handoff remains future work. The advisor does not approve credit or create a real product.
 

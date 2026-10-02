@@ -1,0 +1,77 @@
+name: Deploy advisor from main
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out protected main
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Test source-data-free advisor paths
+        run: python3 -m unittest advisor.test_hosted advisor.test_lambda_app advisor.test_aws_state advisor.test_service -q
+
+      - name: Package allowlisted Lambda files
+        run: python3 infra/aws/package_lambda.py /tmp/advisor-deploy.zip
+
+  deploy:
+    needs: test
+    if: github.event_name == 'push' && github.repository == 'lucasswolff/factored-hackathon-2026-atlas' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: advisor-production-deploy
+      cancel-in-progress: false
+    steps:
+      - name: Check out protected main
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Package allowlisted Lambda files
+        run: python3 infra/aws/package_lambda.py /tmp/advisor-deploy.zip
+
+      - name: Assume scoped AWS deployment role
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: arn:aws:iam::049882582413:role/factored-advisor-github-main-deploy
+          aws-region: us-east-2
+          allowed-account-ids: '049882582413'
+          role-session-name: github-${{ github.run_id }}
+
+      - name: Deploy and verify code hash
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws lambda update-function-code \
+            --function-name factored-advisor-demo \
+            --zip-file fileb:///tmp/advisor-deploy.zip \
+            --query 'CodeSha256' --output text >/tmp/deployed-code-hash
+          aws lambda wait function-updated --function-name factored-advisor-demo
+          actual=$(aws lambda get-function-configuration \
+            --function-name factored-advisor-demo --query 'CodeSha256' --output text)
+          expected=$(python3 -c 'import base64,hashlib;print(base64.b64encode(hashlib.sha256(open("/tmp/advisor-deploy.zip","rb").read()).digest()).decode())')
+          test "$actual" = "$expected"
+          test "$actual" = "$(cat /tmp/deployed-code-hash)"
+
+      - name: Check live health
+        shell: bash
+        run: |
+          set -euo pipefail
+          url=$(aws lambda get-function-url-config \
+            --function-name factored-advisor-demo --query 'FunctionUrl' --output text)
+          test "$(curl --fail --silent --show-error --retry 3 --max-time 15 "${url}healthz")" = ok

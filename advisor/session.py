@@ -100,6 +100,15 @@ def _format_result(result: PolicyResult, language: str) -> str:
             lead += ("Não foi possível determinar se atende aos limites desta simulação; não há pré-aprovação. "
                      if pt else
                      "No se pudo determinar si cumple los umbrales de esta simulación; no hay preaprobación. ")
+            missing_names = {
+                "credit_score": ("pontuação", "puntuación"),
+                "estimated_monthly_income": ("renda estimada", "ingresos estimados"),
+            }
+            fields = ", ".join(missing_names[key][0 if pt else 1]
+                               for key in result.missing_data if key in missing_names)
+            if fields:
+                lead += (f"Falta no perfil: {fields}. " if pt else
+                         f"Falta en el perfil: {fields}. ")
     tail = (" Os dados do perfil são estimativas." if pt else
             " Los datos del perfil son estimaciones.")
     return lead + detail + tail
@@ -115,6 +124,8 @@ def recommendation_for_session(chat: Conversation, directory: DemoDirectory) -> 
         return {"answer": message, "citations": [], "route": "ASK_PERMISSION" if chat.demo_alias else "ASK_SIGN_IN",
                 "fact_version": FACT_VERSION, "error": str(exc)}
     result = suggest(profile)
+    if result.status == "SUGGESTED_FOR_DISCUSSION":
+        chat.selected_card = result.card
     return {"answer": _format_result(result, chat.language), "citations": [],
             "route": "POLICY_SUGGESTION", "policy": result, "fact_version": FACT_VERSION}
 

@@ -149,6 +149,29 @@ class HostedTest(unittest.TestCase):
         self.assertEqual(reopened.read(self.app.sessions[self.cookie.split("=", 1)[1]].conversation_id,
                                        "Horizon")["application_id"], reference)
 
+    def test_confirmed_handoff_transfers_thread_and_pauses_bot(self):
+        self.judge("GET", "/")
+        self.judge("POST", "/api/start", {"entry": "direct", "country": "México",
+                                           "language": "pt", "alias": "P05"})
+        question = "Qual é o custo total de um saque em dinheiro?"
+        status, offered, _ = self.judge("POST", "/api/chat", {"message": question})
+        self.assertEqual(status, 200)
+        self.assertEqual(offered["last_result"]["route"], "OFFER_HANDOFF")
+        self.assertIsNone(offered["handoff"])
+        status, accepted, _ = self.judge("POST", "/api/chat", {"message": "sim"})
+        self.assertEqual(status, 200)
+        self.assertEqual(accepted["last_result"]["route"], "HANDOFF_RECORDED")
+        self.assertNotIn("simulada", accepted["events"][-1]["text"])
+        self.assertEqual(self.judge("GET", "/api/review")[0], 401)
+        status, queue, _ = self.reviewer("GET", "/api/review")
+        self.assertEqual(status, 200)
+        record = next(row for row in queue["handoffs"]
+                      if row["handoff_id"] == accepted["handoff"]["handoff_id"])
+        self.assertEqual(record["packet"]["transcript"][-1]["text"], "sim")
+        self.assertIn(question, [turn["text"] for turn in record["packet"]["transcript"]])
+        with patch("advisor.service._generate", side_effect=AssertionError("bot must remain paused")):
+            self.assertEqual(self.judge("POST", "/api/chat", {"message": "Outra pergunta"})[0], 400)
+
     def test_pending_application_can_switch_to_other_card_comparison(self):
         self.judge("GET", "/")
         self.judge("POST", "/api/start", {"entry": "campaign", "campaign_id": "CMP-NM2UHJMKPA0C",

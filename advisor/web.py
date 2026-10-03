@@ -315,19 +315,35 @@ class WebApp:
                 "citations": [], "route": "ASK_PRECHECK_CONSENT", "card": card}
 
     def _record_handoff(self, state: BrowserSession, chat: Conversation,
-                        question: str | None = None) -> dict[str, Any]:
+                        question: str | None = None, customer_message: str | None = None) -> dict[str, Any]:
         if state.conversation_id is None or chat.demo_alias is None or chat.country is None:
             raise PermissionError("Active customer session required")
         if state.handoff_record:
             record = state.handoff_record
             return {"answer": (f"Seu pedido anterior de atendimento humano já está registrado. "
-                               f"Protocolo {record['handoff_id']}; status PENDING_REVIEW. "
-                               + self._assignment_message(record, chat.language)
+                               f"Protocolo {record['handoff_id']}; aguardando revisão."
                                if chat.language == "pt" else
                                f"Tu solicitud anterior de atención humana ya está registrada. "
-                               f"Referencia {record['handoff_id']}; estado PENDING_REVIEW. "
-                               + self._assignment_message(record, chat.language)),
+                               f"Referencia {record['handoff_id']}; pendiente de revisión."),
                     "citations": [], "route": "HANDOFF_RECORDED", "card": record["card"]}
+        try:
+            existing = self.applications.read_handoff(state.conversation_id, "CUSTOMER_REQUEST")
+        except ApplicationStorageError:
+            existing = None
+        if existing:
+            if (existing.get("customer_alias") != chat.demo_alias or
+                    existing.get("country") != chat.country or
+                    existing.get("language") != chat.language or
+                    existing.get("status") != "PENDING_REVIEW" or
+                    existing.get("offer_version") != OFFER_VERSION):
+                raise ApplicationStorageError("Existing handoff did not pass verification")
+            state.handoff_record = existing
+            return {"answer": (f"Sua conversa foi encaminhada para atendimento humano. "
+                               f"Protocolo {existing['handoff_id']}; aguardando revisão."
+                               if chat.language == "pt" else
+                               f"Tu conversación quedó derivada a atención humana. "
+                               f"Referencia {existing['handoff_id']}; pendiente de revisión."),
+                    "citations": [], "route": "HANDOFF_RECORDED", "card": existing["card"]}
         profile = profile_summary(chat, self.directory)
         checks = [{"card": card, "status": check["status"],
                    "reasons": check["reasons"], "missing_data": check.get("missing_data", []),
@@ -344,8 +360,17 @@ class WebApp:
                    "Customer requested review of an unanswered card question" if question else
                    f"Customer requested a person to review {chat.selected_card}"
                    if chat.selected_card else "Customer requested a person to review card options")
+        transcript = [{"role": event["role"],
+                       "text": PRIVATE_INPUT.sub("[redacted]", event["text"]),
+                       **({"route": event["route"]} if event.get("route") else {})}
+                      for event in state.events if event.get("role") in {"user", "assistant"}
+                      and isinstance(event.get("text"), str)]
+        if customer_message:
+            transcript.append({"role": "user", "text": PRIVATE_INPUT.sub("[redacted]", customer_message[:2000])})
         packet = {
             "request": request,
+            "conversation_id": state.conversation_id,
+            "transcript": transcript,
             "unresolved_question": PRIVATE_INPUT.sub("[redacted]", question[:500]) if question else None,
             "assignment": assignment,
             "verified_facts": {"fixture": chat.demo_alias, "source": profile["source"],
@@ -369,32 +394,17 @@ class WebApp:
         try:
             record = self.applications.create_handoff_and_verify(draft, utc_now())
         except ApplicationStorageError:
-            return {"answer": ("Não consegui verificar o pedido de atendimento humano. Nenhuma pessoa foi atribuída; tente novamente."
+            return {"answer": ("Não consegui verificar o encaminhamento da conversa. Tente novamente."
                                if chat.language == "pt" else
-                               "No pude verificar la solicitud de atención humana. No se asignó a nadie; inténtalo de nuevo."),
+                               "No pude verificar la derivación de la conversación. Inténtalo de nuevo."),
                     "citations": [], "route": "HANDOFF_UNVERIFIED", "card": chat.selected_card}
         state.handoff_record = record
-        return {"answer": (f"Registrei seu pedido de atendimento humano. Protocolo {record['handoff_id']}; "
-                           "status PENDING_REVIEW. " + self._assignment_message(record, chat.language)
+        return {"answer": (f"Sua conversa foi encaminhada para atendimento humano. "
+                           f"Protocolo {record['handoff_id']}; aguardando revisão."
                            if chat.language == "pt" else
-                           f"Registré tu solicitud de atención humana. Referencia {record['handoff_id']}; "
-                           "estado PENDING_REVIEW. " + self._assignment_message(record, chat.language)),
+                           f"Tu conversación quedó derivada a atención humana. "
+                           f"Referencia {record['handoff_id']}; pendiente de revisión."),
                 "citations": [], "route": "HANDOFF_RECORDED", "card": chat.selected_card}
-
-    @staticmethod
-    def _assignment_message(record: dict[str, Any], language: str) -> str:
-        packet = record.get("packet")
-        if isinstance(packet, str):
-            packet = json.loads(packet)
-        assignment = packet.get("assignment") if packet else None
-        if assignment:
-            agent_id = assignment["agent_id"]
-            return (f"Atribuição simulada ao agente {agent_id}; ele não foi contatado."
-                    if language == "pt" else
-                    f"Asignación simulada al agente {agent_id}; no se lo contactó.")
-        return ("Nenhum agente elegível foi atribuído; o pedido está na fila."
-                if language == "pt" else
-                "No se asignó un agente elegible; la solicitud está en la cola.")
 
     @staticmethod
     def _options_overview(language: str) -> dict[str, Any]:
@@ -503,7 +513,7 @@ class WebApp:
         if action["kind"] == "handoff_offer":
             state.pending_action = None
             if decision:
-                return self._record_handoff(state, chat, action.get("question"))
+                return self._record_handoff(state, chat, action.get("question"), message)
             return {"answer": ("Tudo bem. Não registrei pedido de atendimento humano."
                                if chat.language == "pt" else
                                "De acuerdo. No registré una solicitud de atención humana."),
@@ -629,6 +639,8 @@ class WebApp:
             state.application_submission_uncertain = False
             state.pending_action = None
             return self.snapshot(state)
+        if state.handoff_record:
+            raise PermissionError("This conversation is waiting for human review")
         if path == "/api/persona-preview":
             return {"persona": self.directory.persona_preview(body.get("alias"))}
         if chat is None:
@@ -710,7 +722,7 @@ class WebApp:
             if wants_human(message) and not state.application_submission_uncertain:
                 state.pending_action = None
                 state.application_draft = None
-                result = self._record_handoff(state, chat)
+                result = self._record_handoff(state, chat, customer_message=message.strip())
             else:
                 result = self.limited_respond(chat, message) if closing else self._handle_pending_chat(state, chat, message.strip())
             if result is None:

@@ -14,7 +14,9 @@ Customer requests for a person are stored with read-back and shown in the
 review queue. Unanswerable product questions offer the same path after an
 explicit yes. A private organizer roster supplies a mock agent ID, with chat
 language and credit specialty required and country preferred. No employee is
-contacted. A later service will add real authentication and live human assignment. No historical campaign click is treated as
+contacted. The reviewer sees the same bounded conversation thread, and the bot
+stops responding once the request is verified. A later service will add real
+authentication and live human assignment. No historical campaign click is treated as
 authentication or as a contract.
 
 | State/intent | Required service evidence | Allowed result now | Later result |

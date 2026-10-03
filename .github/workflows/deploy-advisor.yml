@@ -20,7 +20,7 @@ jobs:
           persist-credentials: false
 
       - name: Test source-data-free advisor paths
-        run: python3 -m unittest advisor.test_hosted advisor.test_lambda_app advisor.test_aws_state advisor.test_service -q
+        run: python3 -m unittest advisor.test_agents advisor.test_hosted advisor.test_lambda_app advisor.test_aws_state advisor.test_service -q
 
       - name: Package allowlisted Lambda files
         run: python3 infra/aws/package_lambda.py /tmp/advisor-deploy.zip

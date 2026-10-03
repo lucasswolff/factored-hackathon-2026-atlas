@@ -363,7 +363,7 @@ class BrowserJourneyTest(unittest.TestCase):
         self.assertEqual(item["precheck_policy_version"], POLICY_VERSION)
         self.assertNotIn("confirmation_token", json.dumps(queue))
 
-    def test_human_request_is_stored_and_visible_without_assignment(self):
+    def test_human_request_is_stored_with_mock_roster_assignment(self):
         self.request("POST", "/api/start", {"entry": "offer", "selected_card": "Campus",
                                               "country": "México", "language": "pt", "alias": "P02"})
         self.request("POST", "/api/chat", {"message": "Quero solicitar Campus"})
@@ -374,7 +374,8 @@ class BrowserJourneyTest(unittest.TestCase):
         self.assertIsNone(state["application"])
         handoff_id = state["handoff"]["handoff_id"]
         self.assertIn(handoff_id, state["events"][-1]["text"])
-        self.assertIn("não há pessoa atribuída", state["events"][-1]["text"])
+        self.assertIn("Atribuição simulada", state["events"][-1]["text"])
+        self.assertIn("agent_id", state["handoff"]["assignment"])
         _, repeat = self.request("POST", "/api/chat", {"message": "Quero falar com uma pessoa"})
         self.assertEqual(repeat["handoff"]["handoff_id"], handoff_id)
         with patch("advisor.service._generate", return_value={
@@ -398,7 +399,55 @@ class BrowserJourneyTest(unittest.TestCase):
         self.assertIn("Verify current student enrollment", item["packet"]["open_questions"])
         self.assertEqual(item["packet"]["actions_taken"]["prechecks"], [])
         self.assertNotIn("Prefiro falar", json.dumps(item))
-        self.assertNotIn("agent_id", json.dumps(item))
+        self.assertEqual(item["packet"]["assignment"]["agent_id"],
+                         state["handoff"]["assignment"]["agent_id"])
+        self.assertEqual(item["packet"]["assignment"]["assignment_mode"], "MOCK_ROSTER")
+
+    def test_unknown_cost_offers_handoff_and_waits_for_yes(self):
+        self.request("POST", "/api/start", {"entry": "direct", "country": "México",
+                                             "language": "pt", "alias": "P05"})
+        question = "Qual é o custo total de um saque em dinheiro?"
+        _, offered = self.request("POST", "/api/chat", {"message": question})
+        self.assertEqual(offered["last_result"]["route"], "OFFER_HANDOFF")
+        self.assertEqual(offered["pending_action"]["kind"], "handoff_offer")
+        self.assertIsNone(offered["handoff"])
+        _, declined = self.request("POST", "/api/chat", {"message": "não"})
+        self.assertEqual(declined["last_result"]["route"], "HANDOFF_DECLINED")
+        self.assertIsNone(declined["handoff"])
+        self.request("POST", "/api/chat", {"message": question})
+        _, accepted = self.request("POST", "/api/chat", {"message": "sim"})
+        self.assertEqual(accepted["last_result"]["route"], "HANDOFF_RECORDED")
+        self.assertIn("Atribuição simulada", accepted["events"][-1]["text"])
+        assignment = accepted["handoff"]["assignment"]
+        self.assertEqual(assignment["language"], "pt")
+        self.assertFalse(assignment["country_match"])
+        _, queue = self.request("GET", "/api/review")
+        packet = next(r["packet"] for r in queue["handoffs"]
+                      if r["handoff_id"] == accepted["handoff"]["handoff_id"])
+        self.assertEqual(packet["unresolved_question"], question)
+        self.assertEqual(packet["assignment"], assignment)
+
+    def test_model_unresolved_signal_offers_review_without_immediate_write(self):
+        self.request("POST", "/api/start", {"entry": "direct", "country": "México",
+                                             "language": "es", "alias": "P05"})
+        with patch("advisor.service._generate", return_value={
+                "answer": "No puedo confirmar esa condición con la información disponible.",
+                "citations": ["TRAVEL.RULES"], "unresolved": True}):
+            _, state = self.request("POST", "/api/chat", {"message": "¿Mi viaje concreto está cubierto?"})
+        self.assertEqual(state["last_result"]["route"], "OFFER_HANDOFF")
+        self.assertIsNone(state["handoff"])
+        _, state = self.request("POST", "/api/chat", {"message": "sí"})
+        self.assertEqual(state["last_result"]["route"], "HANDOFF_RECORDED")
+        self.assertTrue(state["handoff"]["assignment"]["country_match"])
+
+    def test_no_eligible_agent_stays_queued_without_false_assignment(self):
+        self.request("POST", "/api/start", {"entry": "direct", "country": "Argentina",
+                                             "language": "pt", "alias": "P03"})
+        with patch.object(self.server.app.agent_directory, "candidates", return_value=[]):
+            _, state = self.request("POST", "/api/chat", {"message": "Quero falar com uma pessoa"})
+        self.assertEqual(state["last_result"]["route"], "HANDOFF_RECORDED")
+        self.assertIsNone(state["handoff"]["assignment"])
+        self.assertIn("fila", state["events"][-1]["text"])
 
     def test_handoff_packet_keeps_consented_policy_evidence_without_chat_dump(self):
         self.request("POST", "/api/start", {"entry": "direct", "country": "Argentina",

@@ -10,9 +10,11 @@ browser UI creates confirmed local mock applications with read-back through
 chat. Asking about applying leads to an optional, separately consented card
 precheck and then a distinct application confirmation. Typed yes/no replies
 control each transition; vague replies and expired prompts never create a record.
-Customer requests for a person are stored locally with read-back and shown in
-the review queue, but no employee is assigned or contacted. A later service
-will add real authentication and actual human assignment. No historical campaign click is treated as
+Customer requests for a person are stored with read-back and shown in the
+review queue. Unanswerable product questions offer the same path after an
+explicit yes. A private organizer roster supplies a mock agent ID, with chat
+language and credit specialty required and country preferred. No employee is
+contacted. A later service will add real authentication and live human assignment. No historical campaign click is treated as
 authentication or as a contract.
 
 | State/intent | Required service evidence | Allowed result now | Later result |
@@ -23,7 +25,7 @@ authentication or as a contract.
 | Personal suggestion | Allowlisted existing-customer test persona; browser selection enables profile use, CLI asks separately | Versioned, country-specific deterministic suggestion | Replace fixture selection with identity service for deployment |
 | Precheck | Test session, profile permission, separate card-specific one-use consent, versioned policy output | Deterministic simulated result; never approve | Validate policy/fairness and connect human review |
 | Mock application | Trusted fixture session, selected card, explicit confirmation, idempotent local write and read-back | Report actual `PENDING_REVIEW` ID/status only after read-back | Replace local store with reviewed application service |
-| Handoff | Explicit customer request, local write and read-back | Return verified `PENDING_REVIEW` request reference; state no assignment | Return a verified assignee only after actual assignment |
+| Handoff | Explicit human request or confirmed unanswered-question offer; write and read-back | Return verified `PENDING_REVIEW` reference and mock roster assignee, if eligible | Return a verified live assignee only after actual assignment |
 | Decline | Explicit customer choice | Stop, no application | Stop, preserve no-action audit |
 
 The service must never send raw customer rows, identifiers, credentials, or

@@ -28,7 +28,15 @@ server-owned responses are deliberately narrow; other phrasings can still go
 to the model. The service does not prove every model claim from a citation,
 and the offline harness does not exercise the complete browser workflow.
 
-The advisor suite passed 84 tests and the analysis suite passed 11 after these
+An observed Portuguese follow-up exposed a separate conversation bug: after
+suggesting Summit, a request for a cheaper card repeated the same profile
+suggestion. The advisor now compares the lower-fee Rewards and zero-annual-fee
+Horizon options using the country-specific offer facts, explains that Summit's
+spend threshold is for a monthly fee waiver, and leaves the selected card
+unchanged until the customer names another card. Generic requests for another
+card receive a factual comparison instead of reusing the profile suggestion.
+
+The advisor suite passed 86 tests and the analysis suite passed 11 after these
 changes. The hosted version of this follow-up depends on a successful
 protected-main deployment. A new independently human-reviewed bilingual set,
 including paraphrases outside these patterns, is still needed before making a

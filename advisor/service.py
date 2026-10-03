@@ -15,6 +15,8 @@ from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+from .product_routing import ProductIntent, classify_product_intent
+
 ROOT = Path(__file__).resolve().parents[1]
 FACT_VERSION = "CONV-FACTS-2026-09-30-v5"
 CAMPAIGNS = {
@@ -79,8 +81,20 @@ def _lounge_counts() -> dict[str, int]:
     return counts
 
 
-def _fee_comparison(country: str) -> tuple[str, str, str, str, str, str]:
-    """Read the installment and waiver figures from the versioned offer facts."""
+def _travel_limits() -> dict[str, int]:
+    facts = dict(public_facts())
+    limits = {}
+    for card in ("Rewards", "Summit"):
+        match = re.search(r"up to USD ([\d,]+) of emergency-medical-expense coverage",
+                          facts[f"BENEFIT.{card.upper()}"])
+        if match is None:
+            raise RuntimeError("Travel coverage fact is missing")
+        limits[card] = int(match.group(1).replace(",", ""))
+    return limits
+
+
+def _fee_comparison(country: str) -> tuple[str, str, dict[str, tuple[int, int | None]]]:
+    """Read comparable card fees from the versioned offer facts."""
     fee_id, currency = {
         "Colombia": ("FEE.CO", "COP"),
         "México": ("FEE.MX", "MXN"),
@@ -92,77 +106,118 @@ def _fee_comparison(country: str) -> tuple[str, str, str, str, str, str]:
     thresholds = fact.split("Waiver thresholds", 1)
     if len(thresholds) != 2:
         raise RuntimeError("Waiver threshold fact is missing")
-    figures = []
+    terms: dict[str, tuple[int, int | None]] = {"Campus": (0, None), "Horizon": (0, None)}
     for card in ("Rewards", "Summit"):
         installment = re.search(
             rf"{card} maximum {currency} [\d,]+/year in {currency} ([\d,]+) (?:monthly )?installments", fact)
         threshold = re.search(rf"{card} {currency} ([\d,]+)", thresholds[1])
         if installment is None or threshold is None:
             raise RuntimeError("Card fee fact is missing")
-        figures.extend(f"{int(match.group(1).replace(',', '')):,}".replace(",", ".")
-                       for match in (installment, threshold))
-    return fee_id, currency, *figures
+        terms[card] = tuple(int(match.group(1).replace(",", ""))
+                            for match in (installment, threshold))
+    return fee_id, currency, terms
 
 
-def _alternative_cards(conversation: Conversation, message: str, *, cheaper: bool) -> dict[str, object]:
-    if conversation.country is None:
-        answer = ("Em qual país você quer comparar os cartões?" if conversation.language == "pt" else
-                  "¿En qué país quieres comparar las tarjetas?")
-        conversation.turns.extend([{"role": "user", "text": message},
-                                   {"role": "assistant", "text": answer}])
-        return {"answer": answer, "citations": [], "route": "CLARIFY", "fact_version": FACT_VERSION}
-    fee_id, currency, rewards_fee, rewards_threshold, summit_fee, summit_threshold = _fee_comparison(conversation.country)
+def _money(amount: int) -> str:
+    return f"{amount:,}".replace(",", ".")
+
+
+def _alternative_cards(conversation: Conversation, message: str,
+                       intent: ProductIntent) -> dict[str, object]:
     pt = conversation.language == "pt"
-    current = conversation.selected_card
-    if current == "Summit":
-        lead = ("Entendi: você procura uma alternativa ao Summit com anuidade ou meta de isenção menor. "
-                if cheaper else "Além do Summit, você pode comparar Rewards e Horizon. ") if pt else (
-                "Entiendo: buscas una alternativa a Summit con menor cuota anual o umbral de exención. "
-                if cheaper else "Además de Summit, puedes comparar Rewards y Horizon. ")
-        answer = (
-            lead +
-            f"Os {currency} {summit_threshold} são gastos por ciclo completo para isentar a parcela de {currency} {summit_fee}, "
-            f"não um pagamento obrigatório. Rewards tem parcela máxima de {currency} {rewards_fee}, "
-            f"isenta com {currency} {rewards_threshold} em compras elegíveis no ciclo, e 2 visitas a salas VIP por ano. "
-            "Horizon não tem anuidade nem meta de gastos; oferece 1% de crédito na fatura em compras elegíveis de mercado e transporte, mas não inclui salas VIP. "
-            "Prefere manter acesso a salas VIP ou evitar a anuidade?"
-            if pt else
-            lead +
-            f"Los {currency} {summit_threshold} son compras por ciclo completo para exonerar la cuota de {currency} {summit_fee}, "
-            f"no un pago obligatorio. Rewards tiene una cuota máxima de {currency} {rewards_fee}, "
-            f"exonerada con {currency} {rewards_threshold} en compras elegibles del ciclo, y 2 visitas a salas VIP por año. "
-            "Horizon no tiene cuota anual ni umbral de compras; ofrece un abono del 1% en el estado de cuenta por compras elegibles de supermercado y transporte, pero no incluye salas VIP. "
-            "¿Prefieres conservar las salas VIP o evitar la cuota anual?")
-        citations = [fee_id, "FEE.WAIVER", "BENEFIT.REWARDS", "BENEFIT.HORIZON"]
-    elif current == "Rewards" and cheaper:
-        answer = (
-            f"Horizon tem anuidade zero e não exige gastos para isenção, enquanto Rewards tem parcela máxima "
-            f"de {currency} {rewards_fee}, isenta a partir de {currency} {rewards_threshold} em compras elegíveis "
-            "por ciclo completo. Horizon oferece 1% de crédito na fatura em compras elegíveis de mercado e transporte, "
-            "mas não inclui salas VIP. Campus também não tem anuidade, porém é exclusivo para estudantes."
-            if pt else
-            f"Horizon no tiene cuota anual ni exige compras para exonerarla, mientras que Rewards tiene una cuota máxima "
-            f"de {currency} {rewards_fee}, exonerada desde {currency} {rewards_threshold} en compras elegibles "
-            "por ciclo completo. Horizon ofrece un abono del 1% en el estado de cuenta por compras elegibles de supermercado y transporte, "
-            "pero no incluye salas VIP. Campus tampoco tiene cuota anual, pero es solo para estudiantes.")
-        citations = [fee_id, "FEE.WAIVER", "BENEFIT.HORIZON", "BENEFIT.CAMPUS"]
-    elif current == "Rewards":
-        answer = (
-            f"Além do Rewards, Horizon não tem anuidade e oferece 1% de crédito na fatura em compras elegíveis de mercado "
-            f"e transporte, mas não inclui salas VIP. Summit oferece 8 visitas por ano, com parcela máxima de "
-            f"{currency} {summit_fee}, isenta após {currency} {summit_threshold} em compras elegíveis no ciclo completo. "
-            "Para avaliar um cartão específico com seu perfil, preciso de seu consentimento separado para a avaliação inicial."
-            if pt else
-            f"Además de Rewards, Horizon no tiene cuota anual y ofrece un abono del 1% en el estado de cuenta por compras elegibles de supermercado "
-            f"y transporte, pero no incluye salas VIP. Summit ofrece 8 visitas al año, con una cuota máxima de "
-            f"{currency} {summit_fee}, exonerada tras {currency} {summit_threshold} en compras elegibles del ciclo completo. "
-            "Para evaluar una tarjeta específica con tu perfil, necesito tu consentimiento por separado para la evaluación inicial.")
-        citations = [fee_id, "FEE.WAIVER", "BENEFIT.HORIZON", "BENEFIT.SUMMIT", "ACCESS.PRECHECK"]
+    if conversation.country is None:
+        answer = ("Em qual país você quer comparar os cartões?" if pt else
+                  "¿En qué país quieres comparar las tarjetas?")
+        citations: list[str] = []
+        route = "CLARIFY"
+    elif conversation.selected_card is None and not (intent.lower_cost or intent.require_travel_benefits):
+        answer = ("Qual cartão você quer usar como ponto de comparação?" if pt else
+                  "¿Qué tarjeta quieres usar como punto de comparación?")
+        citations = []
+        route = "CLARIFY"
     else:
-        return {}
+        fee_id, currency, fees = _fee_comparison(conversation.country)
+        visits = {"Campus": 0, "Horizon": 0, **_lounge_counts()}
+        travel_limits = _travel_limits()
+        reference = conversation.selected_card
+        candidates = [card for card in CARD_NAMES if card != reference or not intent.exclude_current]
+        if intent.lower_cost and not intent.no_annual_fee:
+            candidates = ([card for card in candidates if fees[card][0] < fees[reference][0]]
+                          if reference else [card for card in candidates if fees[card][0] == 0])
+        if intent.no_annual_fee:
+            candidates = [card for card in candidates if fees[card][0] == 0]
+        if intent.require_travel_benefits:
+            candidates = [card for card in candidates if visits[card] > 0]
+        candidates.sort(key=lambda card: (-visits[card], card == "Campus", fees[card][0]))
+        candidates = candidates[:2]
+        parts: list[str] = []
+        if intent.lower_cost and reference and fees[reference][1] is not None:
+            installment, threshold = fees[reference]
+            parts.append(
+                f"No {reference}, {currency} {_money(threshold)} são compras por ciclo completo para isentar "
+                f"a parcela de {currency} {_money(installment)}, não um pagamento obrigatório."
+                if pt else
+                f"En {reference}, {currency} {_money(threshold)} son compras por ciclo completo para exonerar "
+                f"la cuota de {currency} {_money(installment)}, no un pago obligatorio.")
+        if not candidates:
+            if reference and fees[reference][0] == 0:
+                parts.append(
+                    f"{reference} já não tem anuidade; não há anuidade inferior a zero nos termos apresentados."
+                    if pt else
+                    f"{reference} ya no tiene cuota anual; no hay una cuota inferior a cero en las condiciones presentadas.")
+            elif intent.require_travel_benefits:
+                parts.append(
+                    "Não há outra opção com anuidade menor que preserve salas VIP nesses termos."
+                    if pt else
+                    "No hay otra opción con menor cuota anual que conserve las salas VIP en estas condiciones.")
+            else:
+                parts.append(
+                    "Não encontrei outra opção com anuidade menor nos termos apresentados."
+                    if pt else
+                    "No encontré otra opción con menor cuota anual en las condiciones presentadas.")
+        else:
+            for card in candidates:
+                installment, threshold = fees[card]
+                if card == "Horizon":
+                    description = (
+                        "Horizon: sem anuidade nem meta de gastos, com 1% de crédito na fatura em compras "
+                        "elegíveis de mercado e transporte; sem salas VIP."
+                        if pt else
+                        "Horizon: sin cuota anual ni umbral de compras, con un abono del 1% en el estado de cuenta "
+                        "por compras elegibles de supermercado y transporte; sin salas VIP.")
+                elif card == "Campus":
+                    description = (
+                        "Campus: sem anuidade, exclusivo para estudantes, com 1% de crédito na fatura em "
+                        "compras elegíveis de educação; sem salas VIP."
+                        if pt else
+                        "Campus: sin cuota anual, solo para estudiantes, con un abono del 1% en el estado de cuenta "
+                        "por compras elegibles de educación; sin salas VIP.")
+                else:
+                    description = (
+                        f"{card}: parcela máxima de {currency} {_money(installment)} por ciclo, isenta com "
+                        f"{currency} {_money(threshold)} em compras elegíveis no ciclo; "
+                        f"{visits[card]} visitas a salas VIP por ano do cartão e até USD "
+                        f"{_money(travel_limits[card])} para despesas médicas de emergência por viagem coberta."
+                        if pt else
+                        f"{card}: cuota máxima de {currency} {_money(installment)} por ciclo, exonerada con "
+                        f"{currency} {_money(threshold)} en compras elegibles del ciclo; "
+                        f"{visits[card]} visitas a salas VIP por año de tarjeta y hasta USD "
+                        f"{_money(travel_limits[card])} para gastos médicos de emergencia por viaje cubierto.")
+                parts.append(description)
+        if intent.asks_eligibility:
+            parts.append(
+                "Para avaliar um cartão com seu perfil, preciso de consentimento separado para a avaliação inicial."
+                if pt else
+                "Para evaluar una tarjeta con tu perfil, necesito consentimiento separado para la evaluación inicial.")
+        answer = " ".join(parts)
+        citations = [fee_id, "FEE.WAIVER"] + [f"BENEFIT.{card.upper()}" for card in candidates]
+        if intent.asks_eligibility:
+            citations.append("ACCESS.PRECHECK")
+        route = "ANSWER_FACT"
     conversation.turns.extend([{"role": "user", "text": message},
                                {"role": "assistant", "text": answer}])
-    return {"answer": answer, "citations": citations, "route": "ANSWER_FACT", "fact_version": FACT_VERSION}
+    return {"answer": answer, "citations": citations, "route": route,
+            "fact_version": FACT_VERSION}
 
 
 @dataclass
@@ -347,21 +402,19 @@ def respond(conversation: Conversation, message: str,
                   "cobertura; solicita revisión humana antes de reservar.")
         return {"answer": answer, "citations": ["TRAVEL.RULES", "UNKNOWN.TRAVEL"],
                 "route": "SERVICE_BOUNDARY", "fact_version": FACT_VERSION}
-    personal_cues = ("para mí", "me recomiendas", "recomiéndame", "mi perfil", "mis ingresos", "mi sueldo", "mi puntaje", "mi score", "minha renda", "meu perfil", "me recomenda", "me recomende", "para mim", "minha pontuação", "my income")
-    other_card_cues = ("outro cartão", "outro cartao", "outros cartões", "outros cartoes",
-                       "outra tarjeta", "otras tarjetas", "qué otra tarjeta", "que otra tarjeta")
-    asks_other_card = any(cue in lower for cue in other_card_cues)
-    asks_lower_cost = ((any(cue in lower for cue in ("barat", "mais em conta",
-                                                      "más económico", "menos caro", "menos cara",
-                                                      "cheaper", "lower fee")) or
-                        ("menor" in lower and any(cue in lower for cue in (
-                            "valor", "preço", "precio", "custo", "costo", "anuidade",
-                            "anualidad", "tarifa", "cuota", "gasto", "isenção", "exención")))) and
-                       any(cue in lower for cue in ("cartão", "cartao", "tarjeta", "card", "alternativa")))
-    if (asks_other_card or asks_lower_cost) and conversation.selected_card in {"Summit", "Rewards"}:
-        return _alternative_cards(conversation, message, cheaper=asks_lower_cost)
-    if directory is not None and not asks_other_card and not asks_lower_cost and any(
-            cue in lower for cue in personal_cues):
+    product_intent = classify_product_intent(message, conversation.selected_card, tuple(mentioned_cards))
+    if product_intent.kind == "CATALOG_COMPARISON":
+        return _alternative_cards(conversation, message, product_intent)
+    if product_intent.kind == "CHOOSE_OTHER_CARD":
+        answer = ("Qual outro cartão você quer solicitar: Campus, Horizon, Rewards ou Summit?"
+                  if conversation.language == "pt" else
+                  "¿Qué otra tarjeta quieres solicitar: Campus, Horizon, Rewards o Summit?")
+        skip_precheck = bool(re.search(
+            r"\b(?:sin|sem)\s+(?:(?:la|el|a|o)\s+)?(?:evaluaci[oó]n|avalia[cç][aã]o|precheck)", lower))
+        return {"answer": answer, "citations": [], "route": "ASK_CARD",
+                "wants_application": True, "skip_precheck": skip_precheck,
+                "fact_version": FACT_VERSION}
+    if directory is not None and product_intent.kind == "PROFILE_RECOMMENDATION":
         from .session import recommendation_for_session
         return recommendation_for_session(conversation, directory)
     precheck_cues = ("califico", "calificar", "califica", "elegível", "elegibilidade", "preaprov", "pré-aprov", "preaprob", "aprueba", "aprovado", "precheck", "prequal", "soy elegible", "sou elegível", "posso ser aprovado", "teria crédito", "teria credito", "tenho crédito", "tenho credito", "tendría crédito", "tendria credito", "tengo crédito", "tengo credito", "would i qualify", "would i be approved")
@@ -581,7 +634,6 @@ def respond(conversation: Conversation, message: str,
         "Translate 'statement credit' as 'crédito na fatura' in Portuguese or 'abono en el estado de cuenta' in Spanish. "
         "When asked about benefits, lead with the positive features of the requested card; do not list missing features unless asked. "
         "When asked which cards offer a feature, name only the cards that offer it. "
-        "If the customer asks for another card, discuss cards other than the currently selected one; do not repeat the same profile suggestion. "
         "Do not add unrelated fees, rates, missing information, or general caveats to a benefits answer. "
         "For broad 'tell me more' questions, summarize the main benefits first and invite a question about fees or rates instead of dumping every term. "
         "For general lounge or travel-coverage questions, explain the defined visit, guest, trip, and medical-expense rules. Reserve unknown-partner caveats for a named lounge, insurer, trip, or claim question. "

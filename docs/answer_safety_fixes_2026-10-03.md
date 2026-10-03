@@ -35,8 +35,14 @@ Horizon options using the country-specific offer facts, explains that Summit's
 spend threshold is for a monthly fee waiver, and leaves the selected card
 unchanged until the customer names another card. Generic requests for another
 card receive a factual comparison instead of reusing the profile suggestion.
+The follow-up implementation now uses a separate public-intent router and
+filters all four cards from the selected country's versioned fee facts. An
+explicit request to apply for an unnamed *different* card asks which one
+before any consent or mock action. Routing still uses local language patterns;
+unrecognized phrasing goes to the public answer model and needs independent
+testing.
 
-The advisor suite passed 86 tests and the analysis suite passed 11 after these
+The advisor suite passed 89 tests and the analysis suite passed 11 after these
 changes. The hosted version of this follow-up depends on a successful
 protected-main deployment. A new independently human-reviewed bilingual set,
 including paraphrases outside these patterns, is still needed before making a

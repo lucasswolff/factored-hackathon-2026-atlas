@@ -5,6 +5,7 @@ advisor/chat_flow.py
 advisor/data_access.py
 advisor/lambda_app.py
 advisor/policy.py
+advisor/product_routing.py
 advisor/service.py
 advisor/session.py
 advisor/synthetic_data.py

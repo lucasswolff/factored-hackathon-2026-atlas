@@ -33,8 +33,11 @@ making another model request.
 The judge URL is intentionally public; only synthetic profiles can be selected.
 Sessions expire after two hours without a visitor action; keeping a page open
 does not hold a Lambda invocation open.
-The reviewer queue still requires its separate reviewer code. This is a
-hackathon demo, not customer authentication or a production lending service.
+The reviewer queue still requires its separate reviewer code. Open
+`<judge_url>/review`, enter the code in the page, and use **Refresh queue**
+after a confirmed handoff. The page itself is a public sign-in shell; only the
+API returns queue data, and it requires the code. This is a hackathon demo,
+not customer authentication or a production lending service.
 
 The private organizer agent CSV is excluded from Git and the Lambda ZIP.
 After provisioning the DynamoDB table, import only chat routing fields with
@@ -93,6 +96,22 @@ submission. Terraform receives only the parameter *name*, so secrets do not
 enter its state. The Lambda role can read only this parameter and its own
 DynamoDB table and logs. A different parameter name can be passed with
 `-var='secret_parameter_name=/path/name'`.
+
+To get the reviewer code for a private recording, open **AWS Systems Manager →
+Parameter Store → `/factored/advisor/hosted` → Show decrypted value** and copy
+only `ADVISOR_REVIEW_CODE`. Do not show that screen in the recording: the same
+JSON also contains the model API key. With the configured AWS CLI profile,
+this command prints only the reviewer code to your terminal:
+
+```bash
+aws ssm get-parameter --profile factored-hackathon-2026 --region us-east-2 \
+  --name /factored/advisor/hosted --with-decryption \
+  --query Parameter.Value --output text | \
+  python3 -c 'import json,sys; print(json.load(sys.stdin)["ADVISOR_REVIEW_CODE"])'
+```
+
+Keep the terminal off-screen while copying the code. The reviewer page keeps it
+only in memory until reload or tab close.
 
 Terraform state is local and ignored by Git. Keep a private backup if you need
 to manage the same deployment from another computer. The `.terraform.lock.hcl`

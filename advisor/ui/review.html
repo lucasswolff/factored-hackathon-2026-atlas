@@ -3,19 +3,25 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Local review queue · Card Atlas</title>
+  <title>Reviewer queue · Card Atlas</title>
   <link rel="stylesheet" href="/assets/app.css">
   <script src="/assets/review.js" defer></script>
 </head>
 <body>
   <header class="topbar"><div class="brand"><span class="brand-mark">✳</span><span>card atlas<span class="brand-dot">.</span></span></div><a class="review-link" href="/">← Advisor</a></header>
   <main class="review-page">
-    <div class="eyebrow"><span class="eyebrow-line"></span> LOCAL DEMO REVIEW</div>
+    <div class="eyebrow"><span class="eyebrow-line"></span> REVIEWER WORKSPACE</div>
     <h1>Pending review queue</h1>
     <p>Confirmed mock applications and handed-off conversations appear here after storage read-back. Roster assignment is a demo workflow; no live employee chat is connected.</p>
+    <form id="reviewLogin" class="review-login" hidden>
+      <label for="reviewCode">Reviewer code</label>
+      <div class="review-login-row"><input id="reviewCode" type="password" autocomplete="off" required><button class="button button-primary" type="submit">Open queue</button></div>
+      <p>Enter the private reviewer code. This page keeps it only in memory until you reload or close the tab.</p>
+    </form>
+    <button id="refreshReview" class="button button-light review-refresh" type="button" hidden>Refresh queue</button>
     <p id="reviewError" role="alert" hidden></p>
-    <section aria-labelledby="applicationsTitle"><h2 id="applicationsTitle">Mock applications</h2><div id="applicationsList"></div></section>
-    <section aria-labelledby="handoffsTitle"><h2 id="handoffsTitle">Human requests</h2><div id="handoffsList"></div><div id="handoffThreads"></div></section>
+    <section class="review-results" aria-labelledby="applicationsTitle" hidden><h2 id="applicationsTitle">Mock applications</h2><div id="applicationsList"></div></section>
+    <section class="review-results" aria-labelledby="handoffsTitle" hidden><h2 id="handoffsTitle">Human requests</h2><div id="handoffsList"></div><div id="handoffThreads"></div></section>
   </main>
 </body>
 </html>

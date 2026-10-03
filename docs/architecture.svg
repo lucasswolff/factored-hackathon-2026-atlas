@@ -44,7 +44,7 @@
 
   <rect x="1059" y="130" width="333" height="126" rx="14" class="purple"/>
   <text x="1079" y="160" class="head">Protected reviewer</text>
-  <text x="1079" y="187" class="body">/review with separate code</text>
+  <text x="1079" y="187" class="body">Queue data requires code</text>
   <text x="1079" y="210" class="body">Applications + handoff thread</text>
   <text x="1079" y="233" class="small">No employee reply interface</text>
 
@@ -57,7 +57,7 @@
   <rect x="180" y="318" width="1080" height="100" rx="16" class="soft"/>
   <text x="205" y="350" class="head">AWS Lambda Function URL → Lambda adapter → Python HTTP service</text>
   <text x="205" y="378" class="body">Reads expiring session from DynamoDB; binds fictional fixture; serves browser API and reviewer API</text>
-  <text x="205" y="400" class="small">Conditional session writes reject stale concurrent updates · reviewer route requires separate Basic code</text>
+  <text x="205" y="400" class="small">Conditional session writes reject stale concurrent updates · reviewer API requires separate code</text>
 
   <text x="48" y="466" class="band">SERVER-OWNED CONVERSATION FLOW</text>
   <rect x="40" y="483" width="320" height="173" rx="14" class="soft"/>

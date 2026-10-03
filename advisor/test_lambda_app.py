@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import os
 import threading
@@ -39,11 +40,13 @@ class LambdaAdapterTest(unittest.TestCase):
         self.thread.join(timeout=5)
         self.env.stop()
 
-    def call(self, method, path, body=None):
+    def call(self, method, path, body=None, headers=None):
         event = {"version": "2.0", "rawPath": path, "cookies": self.cookies,
                  "headers": {"host": "example.lambda-url.us-east-2.on.aws",
                              "content-type": "application/json"},
                  "requestContext": {"http": {"method": method}}}
+        if headers:
+            event["headers"].update(headers)
         if body is not None:
             event["body"] = json.dumps(body)
         result = lambda_app.lambda_handler(event, None)
@@ -65,6 +68,16 @@ class LambdaAdapterTest(unittest.TestCase):
         self.assertEqual(json.loads(result["body"])["profile"]["country"], "México")
         self.assertEqual(self.call("GET", "/assets/app.css")["statusCode"], 200)
         self.assertEqual(self.table.items[("SESSION#" + self.cookies[0].split("=", 1)[1], "STATE")]["version"], 2)
+
+    def test_review_shell_opens_and_api_requires_explicit_code(self):
+        shell = self.call("GET", "/review")
+        self.assertEqual(shell["statusCode"], 200)
+        self.assertIn("Reviewer code", shell["body"])
+        self.assertEqual(self.call("GET", "/api/review")["statusCode"], 401)
+        wrong = base64.b64encode(b"reviewer:wrong-code").decode()
+        self.assertEqual(self.call("GET", "/api/review", headers={"authorization": f"Basic {wrong}"})["statusCode"], 401)
+        valid = base64.b64encode(b"reviewer:review-test-code-9876543210").decode()
+        self.assertEqual(self.call("GET", "/api/review", headers={"authorization": f"Basic {valid}"})["statusCode"], 200)
 
     def test_chat_application_and_read_back_survive_invocations(self):
         self.call("GET", "/")

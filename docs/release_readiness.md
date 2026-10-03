@@ -47,8 +47,9 @@ record and reference. These are controlled simulations, not live AWS outages.
    scenario selector, not bank authentication. Keep separate precheck consent
    and application confirmation; a real customer deployment needs an identity
    service.
-3. **Protect operations.** Restrict `/review` and `/api/review` to a reviewer
-   identity. Keep the reviewer view separate from customer sessions. Bound
+3. **Protect operations.** The `/review` shell may load publicly, but
+   `/api/review` must require the separate reviewer code before returning any
+   queue data. Keep the reviewer view separate from customer sessions. Bound
    public and per-session request rate, concurrent Claude
    calls, session count/lifetime, and total demo spend; return a safe fallback
    when limits or the model API fail. Never expose API keys to the browser.

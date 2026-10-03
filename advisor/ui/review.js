@@ -49,11 +49,17 @@ async function loadReview() {
        r => (r.precheck_reasons || []).map(reason => reasonNames[reason] || reason).join("; ") || "No precheck reasons recorded",
        r => r.status]);
     renderTable("handoffsList",
-      ["Reference", "Fixture", "Country", "Language", "Card", "Reason", "Status", "Assigned employee"],
+      ["Reference", "Fixture", "Country", "Language", "Card", "Reason", "Verified context", "Prior actions", "Open questions", "Status", "Assigned employee"],
       data.handoffs,
       [r => r.handoff_id, r => r.customer_alias, r => r.country,
        r => r.language === "pt" ? "Portuguese" : "Spanish", r => r.card,
-       r => r.reason === "CUSTOMER_REQUEST" ? "Customer asked for a person" : r.reason,
+       r => r.packet?.request || (r.reason === "CUSTOMER_REQUEST" ? "Customer asked for a person" : r.reason),
+       r => r.packet ? `${r.packet.verified_facts.segment} segment; current card: ${r.packet.verified_facts.has_current_credit_card ? "yes" : "no"}; ${r.packet.verified_facts.source}; offer ${r.packet.evidence.offer_version}; facts ${r.packet.evidence.fact_version}` : "Legacy record: context unavailable",
+       r => r.packet ? [
+         ...r.packet.actions_taken.prechecks.map(p => `${p.card}: ${p.status} (${p.reasons.join(", ") || "no reasons"}); policy ${p.policy_version}; consent ${p.consent_at}`),
+         r.packet.actions_taken.application ? `Application ${r.packet.actions_taken.application.reference}: ${r.packet.actions_taken.application.status}` : "No application recorded"
+       ].join("; ") : "Unavailable",
+       r => r.packet ? r.packet.open_questions.join("; ") : "Unavailable",
        r => r.status, () => "None"]);
   } catch (error) {
     const alert = document.getElementById("reviewError");

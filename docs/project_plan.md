@@ -9,6 +9,19 @@ bilingual answer evaluation against a baseline remains open; the existing
 AI-authored challenge is development evidence only. Submission slides and
 video are still pending.
 
+**Update, 2026-10-03:** The browser service now stores a bounded, structured
+packet for a customer-requested human review; the queue still assigns no
+employee. A new [AI-only bilingual comparison](../plan/conversation_data/ai_review_2026_10_03_comparison.md)
+used 24 frozen AI-authored cases, separately AI-labeled before Claude answered,
+and a separate OpenAI answer judge. It found material guest-quota and fee-answer
+errors. The advisor now has deterministic answers for the high-impact
+fee, guest-quota, coverage, and credit-limit cases and an explicit no-precheck
+application path; these changes were made after the frozen evaluation. This is
+development evidence, not independent human validation or a full
+hosted-journey evaluation. The [answer-safety follow-up](answer_safety_fixes_2026-10-03.md)
+records the replay, service boundaries, and remaining limitations. Submission
+slides and video remain pending.
+
 **Current priority (2026-10-01):** test the [browser demo](../advisor/README.md) against the [conversation contract](../plan/conversation_contract.md). The [campaign mapping](../plan/campaign_cards.md), [four-card demo catalog](card_catalog_draft.md), and [synthetic policy](../plan/demo_credit_policy.md) are drafted. The UI exposes campaign/direct entry, a “Choose a demo customer” screen, Spanish/Portuguese product chat, suggestions, chat-consented prechecks, and chat-confirmed local mock applications with verified `PENDING_REVIEW` read-back. The hosted judge flow is public and uses separate fictional fixtures; the review queue requires a code. Selecting a fixture permits profile use but is not authentication. Policy v2 sends low-score Student Campus and near-threshold Horizon cases to human review. No employee is assigned or contacted. Independent bilingual judgments, real authentication, and an actual human-service integration remain open. The user chose conversation quality over campaign-click prediction. The earlier synthetic prototype was removed.
 
 ## Scope and evidence

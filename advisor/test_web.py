@@ -174,6 +174,35 @@ class BrowserJourneyTest(unittest.TestCase):
                 self.assertEqual(state["events"][-1]["route"], "APPLICATION_RECORDED")
                 self.assertEqual(state["application"]["status"], "PENDING_REVIEW")
 
+    def test_explicit_no_precheck_request_goes_to_application_confirmation(self):
+        self.request("POST", "/api/start", {"entry": "direct", "country": "México",
+                                              "language": "es", "alias": "P05"})
+        with patch("advisor.service._generate", side_effect=AssertionError("workflow must stay local")):
+            _, state = self.request("POST", "/api/chat", {"message":
+                "¿Podría solicitar Horizon directamente o es obligatorio hacer primero la evaluación previa?"})
+            self.assertEqual(state["events"][-1]["route"], "ANSWER_FACT")
+            self.assertIsNone(state["pending_action"])
+            _, state = self.request("POST", "/api/chat", {"message":
+                "Quiero solicitar Horizon sin evaluación previa"})
+        self.assertEqual(state["events"][-1]["route"], "APPLICATION_CONFIRM")
+        self.assertEqual(state["prechecks"], {})
+        self.assertIsNone(state["application"])
+        _, state = self.request("POST", "/api/chat", {"message": "sí"})
+        self.assertEqual(state["application"]["status"], "PENDING_REVIEW")
+
+    def test_no_precheck_request_without_card_requires_card_choice_first(self):
+        self.request("POST", "/api/start", {"entry": "direct", "country": "México",
+                                              "language": "pt", "alias": "P05"})
+        with patch("advisor.service._generate", side_effect=AssertionError("workflow must stay local")):
+            _, state = self.request("POST", "/api/chat", {"message":
+                "Quero solicitar sem avaliação prévia"})
+            self.assertEqual(state["events"][-1]["route"], "ASK_CARD")
+            self.assertIsNone(state["application"])
+            _, state = self.request("POST", "/api/chat", {"message": "Horizon"})
+        self.assertEqual(state["events"][-1]["route"], "APPLICATION_CONFIRM")
+        self.assertEqual(state["prechecks"], {})
+        self.assertIsNone(state["application"])
+
     def test_acquisition_has_card_specific_chat_precheck_path(self):
         self.request("POST", "/api/start", {"entry": "campaign", "campaign_id": "CMP-I5TGQ4SXP4EG", "country": "Colombia", "language": "pt", "alias": "P04"})
         with patch("advisor.service._generate", return_value={"answer": "Rewards oferece milhas.", "citations": ["BENEFIT.REWARDS"]}):
@@ -201,6 +230,29 @@ class BrowserJourneyTest(unittest.TestCase):
                              (state["application"]["application_id"],)).fetchone()
         self.assertEqual(row[:4], ("P04", "CMP-I5TGQ4SXP4EG", precheck_status, POLICY_VERSION))
         self.assertIsNotNone(row[4])
+
+    def test_rewards_campaign_can_record_summit_application(self):
+        campaign_id = "CMP-NM2UHJMKPA0C"
+        self.request("POST", "/api/start", {"entry": "campaign", "campaign_id": campaign_id,
+                                              "country": "Colombia", "language": "pt", "alias": "P04"})
+        with patch("advisor.service._generate", side_effect=AssertionError("application flow must stay local")):
+            _, state = self.request("POST", "/api/chat", {"message": "Quero solicitar Summit"})
+            self.assertEqual(state["conversation"]["selected_card"], "Summit")
+            self.assertEqual(state["pending_action"], {"kind": "precheck_choice", "card": "Summit"})
+            _, state = self.request("POST", "/api/chat", {"message": "não"})
+            self.assertEqual(state["pending_action"], {"kind": "application_confirm", "card": "Summit"})
+            self.assertEqual(state["application_draft"]["card"], "Summit")
+            self.assertIsNone(state["application"])
+            _, state = self.request("POST", "/api/chat", {"message": "sim"})
+        self.assertEqual(state["events"][-1]["route"], "APPLICATION_RECORDED")
+        self.assertEqual(state["application"]["card"], "Summit")
+        self.assertEqual(state["application"]["campaign_id"], campaign_id)
+        self.assertEqual(state["application"]["status"], "PENDING_REVIEW")
+        with sqlite3.connect(self.store_path) as db:
+            card, source = db.execute(
+                "SELECT card, campaign_id FROM mock_applications WHERE application_id = ?",
+                (state["application"]["application_id"],)).fetchone()
+        self.assertEqual((card, source), ("Summit", campaign_id))
 
     def test_chat_can_skip_precheck_and_confirm_application(self):
         self.request("POST", "/api/start", {"entry": "campaign", "campaign_id": "CMP-I5TGQ4SXP4EG", "country": "Colombia", "language": "es", "alias": "P04"})
@@ -338,7 +390,33 @@ class BrowserJourneyTest(unittest.TestCase):
         self.assertEqual((item["customer_alias"], item["language"], item["card"]),
                          ("P02", "pt", "Campus"))
         self.assertEqual(item["status"], "PENDING_REVIEW")
+        self.assertEqual(item["packet"]["verified_facts"]["fixture"], "P02")
+        self.assertEqual(item["packet"]["evidence"]["offer_version"],
+                         self.server.app.applications.read_handoff(
+                             self.server.app.sessions[self.cookie.split("=", 1)[1]].conversation_id,
+                             "CUSTOMER_REQUEST")["offer_version"])
+        self.assertIn("Verify current student enrollment", item["packet"]["open_questions"])
+        self.assertEqual(item["packet"]["actions_taken"]["prechecks"], [])
+        self.assertNotIn("Prefiro falar", json.dumps(item))
         self.assertNotIn("agent_id", json.dumps(item))
+
+    def test_handoff_packet_keeps_consented_policy_evidence_without_chat_dump(self):
+        self.request("POST", "/api/start", {"entry": "direct", "country": "Argentina",
+                                              "language": "es", "alias": "P06"})
+        self.request("POST", "/api/chat", {"message": "Quiero solicitar Horizon"})
+        self.request("POST", "/api/chat", {"message": "sí"})
+        _, state = self.request("POST", "/api/chat", {"message": "Quiero hablar con una persona sobre esto"})
+        handoff_id = state["handoff"]["handoff_id"]
+        _, queue = self.request("GET", "/api/review")
+        packet = next(r["packet"] for r in queue["handoffs"] if r["handoff_id"] == handoff_id)
+        check = packet["actions_taken"]["prechecks"][0]
+        self.assertEqual(check["card"], "Horizon")
+        self.assertEqual(check["policy_version"], POLICY_VERSION)
+        self.assertTrue(check["consent_at"])
+        self.assertEqual(check["status"], "REVIEW_REQUIRED")
+        self.assertIn("Verify missing profile fields before eligibility review", packet["open_questions"])
+        self.assertIsNone(packet["actions_taken"]["application"])
+        self.assertNotIn("Quiero hablar", json.dumps(packet))
 
     def test_handoff_readback_failure_never_claims_assignment(self):
         self.request("POST", "/api/start", {"entry": "direct", "country": "Argentina", "language": "es", "alias": "P03"})

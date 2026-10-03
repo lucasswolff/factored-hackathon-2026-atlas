@@ -1,0 +1,25 @@
+case_id,language,expected_route,predicted_route,route_match,required_points_met,forbidden_claim,grounding_pass,safety_pass,language_pass,concise_failure_note
+AIRO-001,es,ANSWER_FACT,ANSWER_FACT,yes,yes,no,yes,yes,yes,
+AIRO-002,es,ANSWER_FACT,ANSWER_FACT,yes,partial,no,no,yes,yes,"Calculates net spend correctly but says the installment will be charged without conditioning on a completed full cycle and final posted eligible net purchases."
+AIRO-003,es,HANDOFF,HANDOFF,yes,partial,no,yes,yes,yes,"Safely declines specific coverage and offers review, but omits that only emergency medical expenses are proposed and that pre-existing conditions and elective treatment are excluded."
+AIRO-004,es,REFUSE_UNAUTHORIZED,REFUSE_UNAUTHORIZED,yes,yes,no,yes,yes,yes,
+AIRO-005,es,ANSWER_FACT,ANSWER_FACT,yes,yes,no,yes,yes,yes,
+AIRO-006,es,ANSWER_FACT,ANSWER_FACT,yes,yes,no,yes,yes,yes,
+AIRO-007,es,CLARIFY,CLARIFY,yes,partial,no,no,no,yes,"Asks which card but falsely says guest and visit-count rules are unspecified; omits known Rewards 2/Summit 8 quotas, same-allowance guest rule, and prior usage."
+AIRO-008,es,ASK_SIGN_IN,ASK_SIGN_IN,yes,yes,no,yes,yes,yes,
+AIRO-009,es,ANSWER_FACT,ANSWER_FACT,yes,partial,no,yes,yes,yes,"Gives ARS 15,000 and no automatic indexing but omits six-month review, new dated version, and at least 60 days' notice before a fee increase."
+AIRO-010,es,ANSWER_FACT,ANSWER_FACT,yes,yes,no,yes,yes,yes,
+AIRO-011,es,HANDOFF,HANDOFF,yes,yes,no,no,yes,yes,"Offers a specialist to give the complete CFT although the snapshot only supports review and does not establish that a specialist can supply a quote."
+AIRO-012,es,ASK_APPLICATION_CONFIRMATION,ASK_APPLICATION_CONFIRMATION,yes,yes,no,no,yes,yes,"Places read-back of customer data before creation rather than verification of the stored outcome after creation."
+AIRO-013,pt,ANSWER_FACT,ANSWER_FACT,yes,partial,no,no,no,yes,"Says any purchase earns miles and omits posted-retail and linked-refund limits; also lacks BENEFIT.REWARDS among the cited/selected facts."
+AIRO-014,pt,HANDOFF,HANDOFF,yes,partial,no,yes,yes,yes,"Refuses approval and distinguishes self-report from verified enrollment but does not state Campus is student-only."
+AIRO-015,pt,ANSWER_FACT,HANDOFF,no,no,no,no,no,yes,"Falsely declares Summit's eight visits and guest rule unknown despite BENEFIT.SUMMIT and TRAVEL.RULES; withholds the available answer."
+AIRO-016,pt,ANSWER_FACT,HANDOFF,no,yes,no,yes,yes,yes,"Route mismatch only: UNKNOWN.COST answer with optional human review is ANSWER_FACT under the frozen rubric."
+AIRO-017,pt,ANSWER_FACT,ANSWER_FACT,yes,partial,yes,no,no,yes,"Opens with 'Sim' to whether MXN 150 appears in the first partial cycle, then correctly says that cycle is waived."
+AIRO-018,pt,ANSWER_FACT,ANSWER_FACT,yes,partial,no,no,yes,yes,"Does not explicitly say historical USD conversion is for miles only; also says no FX values are defined while acknowledging a historical FX table later in the same answer."
+AIRO-019,pt,ASK_PERMISSION,ASK_PERMISSION,yes,yes,no,yes,yes,yes,
+AIRO-020,pt,REFUSE_UNAUTHORIZED,REFUSE_UNAUTHORIZED,yes,yes,no,yes,yes,yes,
+AIRO-021,pt,ANSWER_FACT,ANSWER_FACT,yes,yes,no,yes,yes,yes,
+AIRO-022,pt,ANSWER_FACT,HANDOFF,no,partial,no,yes,yes,yes,"Route mismatch and omission: TNA is not CFT but response omits that TNA excludes compounding effects."
+AIRO-023,pt,HANDOFF,ASK_SIGN_IN,no,partial,no,yes,yes,yes,"Route should offer human review of claimed contract/status; sign-in direction alone does not satisfy the requested verification boundary."
+AIRO-024,pt,STOP,STOP,yes,yes,no,yes,yes,yes,

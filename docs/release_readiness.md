@@ -16,10 +16,11 @@ Spanish/Portuguese product conversation, fixture-based suggestions, consented
 precheck, and verified mock-application read-back. A separate [AWS judge
 deployment](../infra/aws/README.md) is now public over HTTPS with team-written
 fictional fixtures, a protected reviewer queue, expiring DynamoDB sessions,
-shared daily model-attempt limits, and durable mock actions. It passed an
-initial live smoke test, but still needs a full browser journey matrix and
-independent conversation evaluation. The current regional Lambda
-concurrency quota is ten; it has not been load-tested. The [single-container
+shared daily model-attempt limits, and durable mock actions. It passed the
+[12-combination judge rehearsal](judge_rehearsal_2026-10-02.md) and a small
+six-visitor concurrency check, but still needs independent conversation
+evaluation. The current regional Lambda concurrency quota is ten; peak
+capacity has not been load-tested. The [single-container
 option](deploy.md) remains documented separately and retains per-process limits
 and SQLite storage.
 
@@ -71,12 +72,14 @@ simulated. Do not connect actual lending, employee assignment, or bank writes.
 
 ## Priority 1 — prove the system works
 
-1. **Finish the operational handoff.** Store a structured packet containing the
-   request, selected card, permitted profile facts, offer/policy versions,
-   consent and tool outcomes, evidence, and open questions. Let the reviewer
-   inspect it through protected access. A recorded queue item is not a verified
-   employee assignment; either implement and verify assignment or describe it
-   accurately as queued review.
+1. **Review the operational handoff.** A customer-requested handoff now stores
+   a bounded packet containing the selected card, permitted profile context,
+   offer/policy versions, consented precheck results, verified application
+   outcome, and open questions. The protected hosted reviewer can inspect it.
+   The request summary is generic rather than a raw chat excerpt;
+   unsupported requests and policy-triggered review do not yet create a
+   handoff automatically. No employee is assigned or contacted. Validate the
+   packet with final judge cases and describe it as queued review.
 2. **Freeze a held-out workload.** Use new Spanish and Portuguese cases covering
    normal, ambiguous, decline, missing data, borderline, cross-customer,
    expired session, prompt injection, and model/storage failure. Keep tuning

@@ -83,11 +83,12 @@ class AwsStateTest(unittest.TestCase):
         handoff = store.create_handoff_and_verify(
             {"conversation_id": "conversation", "customer_alias": "P05", "country": "México",
              "language": "es", "card": "Horizon", "reason": "CUSTOMER_REQUEST",
-             "offer_version": OFFER_VERSION}, "time")
+             "offer_version": OFFER_VERSION, "packet": {"request": "Customer requested review"}}, "time")
         self.assertEqual(store.read_handoff("conversation", "CUSTOMER_REQUEST")["handoff_id"], handoff["handoff_id"])
         queue = store.review_queue()
         self.assertEqual(queue["applications"][0]["precheck_reasons"], ["reason"])
         self.assertEqual(len(queue["handoffs"]), 1)
+        self.assertEqual(queue["handoffs"][0]["packet"], {"request": "Customer requested review"})
 
     def test_global_answer_cap(self):
         counter = DynamoAnswerCounter(FakeTable())

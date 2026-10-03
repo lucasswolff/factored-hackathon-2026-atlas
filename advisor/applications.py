@@ -55,10 +55,13 @@ class ApplicationStore:
                 card TEXT,
                 reason TEXT NOT NULL CHECK (reason = 'CUSTOMER_REQUEST'),
                 offer_version TEXT NOT NULL,
+                packet TEXT,
                 created_at TEXT NOT NULL,
                 status TEXT NOT NULL CHECK (status = 'PENDING_REVIEW'),
                 UNIQUE (conversation_id, reason)
             )""")
+            if "packet" not in {row[1] for row in db.execute("PRAGMA table_info(mock_handoffs)")}:
+                db.execute("ALTER TABLE mock_handoffs ADD COLUMN packet TEXT")
 
     def _connect(self) -> sqlite3.Connection:
         db = sqlite3.connect(self.path, timeout=5)
@@ -122,17 +125,18 @@ class ApplicationStore:
             with self._connect() as db:
                 db.execute("""INSERT OR IGNORE INTO mock_handoffs
                     (handoff_id, conversation_id, customer_alias, country, language,
-                     card, reason, offer_version, created_at, status)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING_REVIEW')""",
+                     card, reason, offer_version, packet, created_at, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING_REVIEW')""",
                     (handoff_id, draft["conversation_id"], draft["customer_alias"],
-                     draft["country"], draft["language"], draft["card"],
-                     draft["reason"], draft["offer_version"], created_at))
+                    draft["country"], draft["language"], draft["card"],
+                    draft["reason"], draft["offer_version"], json.dumps(draft["packet"]), created_at))
         except (sqlite3.Error, KeyError) as exc:
             raise ApplicationStorageError("Handoff record could not be written") from exc
         record = self.read_handoff(draft["conversation_id"], draft["reason"])
         if record is None or any(record[key] != draft[key] for key in (
                 "conversation_id", "customer_alias", "country", "language", "card",
-                "reason", "offer_version")) or record["status"] != "PENDING_REVIEW":
+                "reason", "offer_version")) or record["status"] != "PENDING_REVIEW" or \
+                record["packet"] != json.dumps(draft["packet"]):
             raise ApplicationStorageError("Handoff record did not pass read-back verification")
         return record
 
@@ -145,7 +149,7 @@ class ApplicationStore:
                     precheck_policy_version,
                     confirmed_at, status FROM mock_applications ORDER BY confirmed_at DESC""")]
                 handoffs = [dict(row) for row in db.execute("""SELECT handoff_id, customer_alias,
-                    country, language, card, reason, created_at, status
+                    country, language, card, reason, packet, created_at, status
                     FROM mock_handoffs ORDER BY created_at DESC""")]
         except sqlite3.Error as exc:
             raise ApplicationStorageError("Review queue could not be read") from exc
@@ -155,4 +159,9 @@ class ApplicationStore:
                                                    if application["precheck_reasons"] else [])
             except json.JSONDecodeError as exc:
                 raise ApplicationStorageError("Application reasons could not be read") from exc
+        for handoff in handoffs:
+            try:
+                handoff["packet"] = json.loads(handoff["packet"]) if handoff["packet"] else None
+            except json.JSONDecodeError as exc:
+                raise ApplicationStorageError("Handoff packet could not be read") from exc
         return {"applications": applications, "handoffs": handoffs}

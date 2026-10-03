@@ -374,17 +374,16 @@ class BrowserJourneyTest(unittest.TestCase):
         self.assertIsNone(state["application"])
         handoff_id = state["handoff"]["handoff_id"]
         self.assertIn(handoff_id, state["events"][-1]["text"])
-        self.assertIn("Atribuição simulada", state["events"][-1]["text"])
+        self.assertIn("aguardando revisão", state["events"][-1]["text"])
+        self.assertNotIn("simulada", state["events"][-1]["text"])
+        self.assertNotIn("contatado", state["events"][-1]["text"])
         self.assertIn("agent_id", state["handoff"]["assignment"])
-        _, repeat = self.request("POST", "/api/chat", {"message": "Quero falar com uma pessoa"})
-        self.assertEqual(repeat["handoff"]["handoff_id"], handoff_id)
-        with patch("advisor.service._generate", return_value={
-            "answer": "Rewards oferece milhas.", "citations": ["BENEFIT.REWARDS"]}):
-            _, switched = self.request("POST", "/api/chat", {"message": "Fale sobre Rewards"})
-        self.assertEqual(switched["conversation"]["selected_card"], "Rewards")
-        _, repeat_after_switch = self.request("POST", "/api/chat", {"message": "Quero falar com uma pessoa"})
-        self.assertEqual(repeat_after_switch["events"][-1]["route"], "HANDOFF_RECORDED")
-        self.assertEqual(repeat_after_switch["handoff"]["handoff_id"], handoff_id)
+        with patch("advisor.service._generate", side_effect=AssertionError("bot must stop after handoff")):
+            status, _ = self.request("POST", "/api/chat", {"message": "Fale sobre Rewards"})
+        self.assertEqual(status, 400)
+        _, frozen = self.request("GET", "/api/state")
+        self.assertEqual(frozen["handoff"]["handoff_id"], handoff_id)
+        self.assertEqual(frozen["conversation"]["selected_card"], "Campus")
         status, queue = self.request("GET", "/api/review")
         self.assertEqual(status, 200)
         item = next(r for r in queue["handoffs"] if r["handoff_id"] == handoff_id)
@@ -398,7 +397,10 @@ class BrowserJourneyTest(unittest.TestCase):
                              "CUSTOMER_REQUEST")["offer_version"])
         self.assertIn("Verify current student enrollment", item["packet"]["open_questions"])
         self.assertEqual(item["packet"]["actions_taken"]["prechecks"], [])
-        self.assertNotIn("Prefiro falar", json.dumps(item))
+        self.assertEqual(item["packet"]["conversation_id"],
+                         self.server.app.sessions[self.cookie.split("=", 1)[1]].conversation_id)
+        self.assertEqual(item["packet"]["transcript"][-1]["text"], "Prefiro falar com uma pessoa")
+        self.assertEqual(item["packet"]["transcript"][0]["role"], "assistant")
         self.assertEqual(item["packet"]["assignment"]["agent_id"],
                          state["handoff"]["assignment"]["agent_id"])
         self.assertEqual(item["packet"]["assignment"]["assignment_mode"], "MOCK_ROSTER")
@@ -417,7 +419,7 @@ class BrowserJourneyTest(unittest.TestCase):
         self.request("POST", "/api/chat", {"message": question})
         _, accepted = self.request("POST", "/api/chat", {"message": "sim"})
         self.assertEqual(accepted["last_result"]["route"], "HANDOFF_RECORDED")
-        self.assertIn("Atribuição simulada", accepted["events"][-1]["text"])
+        self.assertIn("aguardando revisão", accepted["events"][-1]["text"])
         assignment = accepted["handoff"]["assignment"]
         self.assertEqual(assignment["language"], "pt")
         self.assertFalse(assignment["country_match"])
@@ -426,6 +428,8 @@ class BrowserJourneyTest(unittest.TestCase):
                       if r["handoff_id"] == accepted["handoff"]["handoff_id"])
         self.assertEqual(packet["unresolved_question"], question)
         self.assertEqual(packet["assignment"], assignment)
+        self.assertEqual(packet["transcript"][-1]["text"], "sim")
+        self.assertIn(question, [turn["text"] for turn in packet["transcript"]])
 
     def test_model_unresolved_signal_offers_review_without_immediate_write(self):
         self.request("POST", "/api/start", {"entry": "direct", "country": "México",
@@ -447,9 +451,9 @@ class BrowserJourneyTest(unittest.TestCase):
             _, state = self.request("POST", "/api/chat", {"message": "Quero falar com uma pessoa"})
         self.assertEqual(state["last_result"]["route"], "HANDOFF_RECORDED")
         self.assertIsNone(state["handoff"]["assignment"])
-        self.assertIn("fila", state["events"][-1]["text"])
+        self.assertIn("aguardando revisão", state["events"][-1]["text"])
 
-    def test_handoff_packet_keeps_consented_policy_evidence_without_chat_dump(self):
+    def test_handoff_packet_keeps_consented_policy_evidence_and_chat_thread(self):
         self.request("POST", "/api/start", {"entry": "direct", "country": "Argentina",
                                               "language": "es", "alias": "P06"})
         self.request("POST", "/api/chat", {"message": "Quiero solicitar Horizon"})
@@ -465,7 +469,8 @@ class BrowserJourneyTest(unittest.TestCase):
         self.assertEqual(check["status"], "REVIEW_REQUIRED")
         self.assertIn("Verify missing profile fields before eligibility review", packet["open_questions"])
         self.assertIsNone(packet["actions_taken"]["application"])
-        self.assertNotIn("Quiero hablar", json.dumps(packet))
+        self.assertIn("Quiero hablar con una persona sobre esto",
+                      [turn["text"] for turn in packet["transcript"]])
 
     def test_handoff_readback_failure_never_claims_assignment(self):
         self.request("POST", "/api/start", {"entry": "direct", "country": "Argentina", "language": "es", "alias": "P03"})

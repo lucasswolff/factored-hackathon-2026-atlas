@@ -83,7 +83,7 @@ async function act(path, body, chatCall = false) {
 }
 function renderBusy() {
   const chat = state?.conversation;
-  $("sendButton").disabled = busy || !chat || !!chat.stopped;
+  $("sendButton").disabled = busy || !chat || !!chat.stopped || !!state?.handoff;
   for (const id of ["directButton", "continueButton", "signoutButton"]) $(id).disabled = busy;
   document.querySelectorAll(".campaign-card button").forEach(button => { button.disabled = busy; });
 }
@@ -127,8 +127,11 @@ function renderSteps(chat) {
 }
 function renderAccount(chat) {
   $("selectedPersona").textContent = `${chat.demo_alias} · ${state.personas.find(p => p.alias === chat.demo_alias)?.segment || "Customer"} · ${chat.country}`;
-  $("messageInput").disabled = chat.stopped;
-  $("messageInput").placeholder = chat.stopped ? "Conversation ended. Choose another journey to continue." : state.chat_available ? "Ask about benefits, fees, or how a card works…" : "Product answers are temporarily unavailable. Card requests and local prechecks still work.";
+  $("messageInput").disabled = chat.stopped || !!state.handoff;
+  $("messageInput").placeholder = state.handoff ?
+    (chat.language === "pt" ? "Conversa encaminhada para atendimento humano." : "Conversación derivada a atención humana.") :
+    chat.stopped ? "Conversation ended. Choose another journey to continue." :
+    state.chat_available ? "Ask about benefits, fees, or how a card works…" : "Product answers are temporarily unavailable. Card requests and local prechecks still work.";
 }
 function openLogin(entry, campaignId = null, selectedCard = null) {
   pendingEntry = {entry, campaign_id: campaignId, selected_card: selectedCard, country: $("countrySelect").value, language: $("languageSelect").value};
@@ -184,6 +187,7 @@ function renderChat() {
   holder.scrollTop = holder.scrollHeight;
   const chips = $("promptChips");
   chips.replaceChildren();
+  if (state.handoff) return;
   const lang = state.conversation.language;
   for (const suggestion of prompts[lang]) {
     const button = child(chips, "button", "prompt-chip", suggestion);
@@ -227,7 +231,7 @@ function renderEvidence(chat) {
     } else if (state.last_result.citations?.length) row(result, "Fact IDs", state.last_result.citations.join(", "));
   } else child(result, "p", "", "A product answer, card suggestion, or precheck result will appear here.");
   const safety = box(holder, "Decision boundary");
-  child(safety, "p", "", "Card terms and thresholds are synthetic. A suggested card is for discussion; a precheck is not an approval. Confirmed applications and human requests are local mock records pending review. No human assignment is created yet.");
+  child(safety, "p", "", "Card terms and thresholds are synthetic. A suggested card is for discussion; a precheck is not an approval. Handoffs use a roster assignment in the review queue; no live employee chat is connected.");
   const application = box(holder, "Mock application");
   if (state.application) {
     row(application, "Reference", state.application.application_id);
@@ -244,7 +248,7 @@ function renderEvidence(chat) {
   if (state.handoff) {
     row(handoff, "Reference", state.handoff.handoff_id);
     row(handoff, "Status", state.handoff.status);
-    row(handoff, "Assigned employee", "None");
+    row(handoff, "Roster assignee", state.handoff.assignment?.agent_id || "Awaiting assignment");
   } else child(handoff, "p", "", "No human request has been recorded.");
 }
 function render() {

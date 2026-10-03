@@ -71,12 +71,16 @@ handoff and waits for a yes/no reply. After yes, it records a mock roster
 assignment with read-back; no employee is contacted. Eligible agents are
 Active Digital/Hybrid credit specialists who list the chat language. A
 same-country agent is preferred; the selected country is a routing proxy,
-not an inferred accent. A verified handoff stores a compact reviewer
-packet: selected fixture and card, authorized profile context, consented
+not an inferred accent. The customer-facing reply gives the reference and
+pending status, and the bot stops replying in that conversation. A verified
+handoff stores a reviewer packet: selected fixture and card, authorized profile context, consented
 precheck outcomes and policy version, any verified mock application reference,
 offer/fact versions, the unresolved question when one prompted review, the
-mock agent ID, and open review questions. It does not copy a full chat transcript,
-contact details, or raw source rows into the review queue.
+mock agent ID, open review questions, and the conversation thread up to the
+customer's confirmation. The thread comes from bounded session history (at
+most 50 displayed events), with obvious email/long-number patterns redacted.
+It contains no contact fields or raw source rows. The reviewer queue shows
+the thread; there is no employee-facing reply tool.
 Retrying the same confirmation reuses the record. The SQLite store lives at
 `advisor/.local/mock_applications.sqlite` (ignored by Git and mode 0600); it
 contains fixture aliases and action metadata, not raw customer records or

@@ -41,7 +41,7 @@ The judge must also be able to open a permitted test persona backed by supplied 
 
 1. **Normal application, Spanish:** The customer asks about the offer, receives cited terms, consents to the simulated precheck, confirms an application, and sees the verified mock application ID and `PENDING_REVIEW` status.
 2. **Clarification and no application, Portuguese:** The customer asks an ambiguous question, the assistant clarifies it and answers from the offer, and the customer declines. The trace shows no application was created.
-3. **Human-required, both languages:** Missing, conflicting, borderline, or unsupported information causes an accurate limitation statement and a structured handoff. The human sees verified facts and open questions, not a raw chat dump.
+3. **Human-required, both languages:** Missing, conflicting, borderline, or unsupported information causes an accurate limitation statement and a structured handoff. The reviewer sees verified facts, open questions, and the bounded conversation thread after the customer confirms handoff.
 4. **Failure case:** An expired session, cross-customer request, unavailable policy tool, or prompt-injection attempt fails safely without disclosure or a false claim that an action occurred.
 
 ## Acceptance criteria and evaluation

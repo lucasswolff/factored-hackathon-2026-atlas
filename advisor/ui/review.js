@@ -62,6 +62,25 @@ async function loadReview() {
        r => r.packet ? [r.packet.unresolved_question, ...r.packet.open_questions].filter(Boolean).join("; ") : "Unavailable",
        r => r.status,
        r => r.packet?.assignment ? `${r.packet.assignment.agent_id} (mock roster assignment)` : "Unassigned"]);
+    const threads = document.getElementById("handoffThreads");
+    threads.replaceChildren();
+    for (const handoff of data.handoffs) {
+      const transcript = handoff.packet?.transcript;
+      if (!Array.isArray(transcript)) continue;
+      const details = document.createElement("details");
+      details.className = "review-thread";
+      const summary = document.createElement("summary");
+      summary.textContent = `${handoff.handoff_id} · ${handoff.packet.assignment?.agent_id || "unassigned"} · conversation`;
+      details.append(summary);
+      const list = document.createElement("ol");
+      for (const event of transcript) {
+        const item = document.createElement("li");
+        item.textContent = `${event.role === "user" ? "Customer" : "Advisor"}: ${event.text}`;
+        list.append(item);
+      }
+      details.append(list);
+      threads.append(details);
+    }
   } catch (error) {
     const alert = document.getElementById("reviewError");
     alert.hidden = false;

@@ -265,21 +265,21 @@ def build() -> None:
            11.5, bold=True, color=WHITE)
     d.finish()
 
-    # 5. Operational discipline and evidence
+    # 5. Operational discipline
     d.start()
-    d.title("04  /  OPERATING DISCIPLINE", "Built with limits, checks, and a safe fallback",
-            "The demo is deployed; the measured evidence is deliberately narrower than a production claim.")
+    d.title("04  /  OPERATING DISCIPLINE", "Built with controlled actions and a safe fallback",
+            "The deployed demo keeps customer data, model answers, and verified actions within distinct boundaries.")
     numbered_card(d, 0.56, 2.05, 5.84, "1", "Security + privacy",
                   "Public app has fictional fixtures; server-bound sessions.\nReviewer code is separate. Secrets stay in SSM; no raw\norganizer customer rows are sent to Claude.", h=1.72)
     numbered_card(d, 6.61, 2.05, 6.17, "2", "Reliability + audit",
                   "12/12 journey checks; 3/3 mock application read-backs.\nIdempotent writes and safe model fallback. CloudWatch\nrecords sanitized route/status metrics and alarms.", h=1.72)
-    numbered_card(d, 0.56, 4.02, 5.84, "3", "Scalability + cost",
-                  "Lambda + on-demand DynamoDB; shared 200 model\nattempts/day. Six-visitor check: 24/24 requests.\nRegional Lambda concurrency quota: 10; no peak test.", h=1.72)
-    numbered_card(d, 6.61, 4.02, 6.17, "4", "Quality + baseline",
-                  "Offline AI-only 24-case answer comparison:\nfull context 17/24 complete vs keyword 13/24;\n2/24 forbidden claims in full. Human review pending.", h=1.72)
+    numbered_card(d, 0.56, 4.02, 5.84, "3", "Scalability",
+                  "Lambda + on-demand DynamoDB keep compute and state\nseparate. Shared sessions support concurrent requests.\nSix-visitor check: 24/24 requests; no peak load test.", h=1.72)
+    numbered_card(d, 6.61, 4.02, 6.17, "4", "Human oversight",
+                  "Unanswered questions offer human review. After\nconfirmation, the same chat and verified context are\nstored with a roster assignee; the bot pauses.", h=1.72)
     d.rect(0.56, 6.18, 12.22, 0.55, PALE, stroke=LINE, radius=0.11)
     d.text(0.78, 6.35, 11.75, 0.24,
-           "Learned retrieval diagnostic: E5 recall@5 84.3% vs keyword 38.9% on 18 cases. E5 is not deployed.",
+           "Prototype boundary: the roster does not show live availability, and no employee reply or bank decision is connected.",
            10.3, bold=True, color=TEAL)
     d.finish()
 

@@ -26,12 +26,13 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from .applications import ApplicationStorageError, ApplicationStore, utc_now
+from .agents import EmptyAgentDirectory, LocalAgentDirectory, choose_agent
 from .chat_flow import (application_choice, application_question, choice, expired,
                         named_card, pending, plain_text, precheck_question,
                         wants_information)
 from .data_access import DemoDirectory
 from .policy import CARDS, OFFER_VERSION
-from .service import CAMPAIGNS, FACT_VERSION, Conversation, respond, wants_human
+from .service import CAMPAIGNS, FACT_VERSION, PRIVATE_INPUT, Conversation, respond, wants_human
 from .session import (grant_precheck_consent, grant_profile_permission,
                       profile_summary, recommendation_for_session, run_precheck,
                       select_demo_persona, sign_out)
@@ -97,11 +98,13 @@ class WebApp:
                  applications: ApplicationStore | None = None, *, hosted: bool = False,
                  answer_limit: int = MAX_ANSWER_CALLS_PER_DAY,
                  local_http_preview: bool = False, answer_counter: Any = None,
-                 on_model_attempt: Any = None):
+                 on_model_attempt: Any = None, agent_directory: Any = None):
         self.hosted = hosted
         self.local_http_preview = local_http_preview
         self.directory = directory if directory is not None else (SyntheticDirectory() if hosted else DemoDirectory())
         self.applications = applications or ApplicationStore()
+        self.agent_directory = agent_directory if agent_directory is not None else (
+            EmptyAgentDirectory() if hosted else LocalAgentDirectory())
         self.sessions: dict[str, BrowserSession] = {}
         self.lock = threading.Lock()
         self.answer_lock = threading.Lock()
@@ -225,8 +228,13 @@ class WebApp:
 
     @staticmethod
     def _public_handoff(record: dict[str, Any]) -> dict[str, Any]:
-        return {k: record[k] for k in ("handoff_id", "card", "country", "language",
-                                      "reason", "status", "created_at")}
+        result = {k: record[k] for k in ("handoff_id", "card", "country", "language",
+                                         "reason", "status", "created_at")}
+        packet = record.get("packet")
+        if isinstance(packet, str):
+            packet = json.loads(packet)
+        result["assignment"] = packet.get("assignment") if packet else None
+        return result
 
     def review_queue(self) -> dict[str, Any]:
         return self.applications.review_queue()
@@ -306,18 +314,19 @@ class WebApp:
         return {"answer": precheck_question(card, chat.language, apply_after=apply_after),
                 "citations": [], "route": "ASK_PRECHECK_CONSENT", "card": card}
 
-    def _record_handoff(self, state: BrowserSession, chat: Conversation) -> dict[str, Any]:
+    def _record_handoff(self, state: BrowserSession, chat: Conversation,
+                        question: str | None = None) -> dict[str, Any]:
         if state.conversation_id is None or chat.demo_alias is None or chat.country is None:
             raise PermissionError("Active customer session required")
         if state.handoff_record:
             record = state.handoff_record
             return {"answer": (f"Seu pedido anterior de atendimento humano já está registrado. "
                                f"Protocolo {record['handoff_id']}; status PENDING_REVIEW. "
-                               "Ainda não há pessoa atribuída."
+                               + self._assignment_message(record, chat.language)
                                if chat.language == "pt" else
                                f"Tu solicitud anterior de atención humana ya está registrada. "
                                f"Referencia {record['handoff_id']}; estado PENDING_REVIEW. "
-                               "Aún no se asignó a nadie."),
+                               + self._assignment_message(record, chat.language)),
                     "citations": [], "route": "HANDOFF_RECORDED", "card": record["card"]}
         profile = profile_summary(chat, self.directory)
         checks = [{"card": card, "status": check["status"],
@@ -325,9 +334,20 @@ class WebApp:
                    "policy_version": check["policy_version"], "consent_at": check["consent_at"]}
                   for card, check in state.prechecks.items()]
         application = state.application_record
+        try:
+            assignment = choose_agent(self.agent_directory.candidates(), chat.language,
+                                      chat.country, state.conversation_id)
+        except Exception:
+            assignment = None
+        request = (f"Customer requested review of an unanswered question about {chat.selected_card}"
+                   if question and chat.selected_card else
+                   "Customer requested review of an unanswered card question" if question else
+                   f"Customer requested a person to review {chat.selected_card}"
+                   if chat.selected_card else "Customer requested a person to review card options")
         packet = {
-            "request": (f"Customer requested a person to review {chat.selected_card}"
-                        if chat.selected_card else "Customer requested a person to review card options"),
+            "request": request,
+            "unresolved_question": PRIVATE_INPUT.sub("[redacted]", question[:500]) if question else None,
+            "assignment": assignment,
             "verified_facts": {"fixture": chat.demo_alias, "source": profile["source"],
                                "country": profile["country"], "segment": profile["segment"],
                                "has_current_credit_card": profile["has_current_credit_card"]},
@@ -339,7 +359,8 @@ class WebApp:
             "open_questions": (["Verify missing profile fields before eligibility review"]
                                if any(check["missing_data"] for check in checks) else []) +
                               (["Verify current student enrollment"] if chat.selected_card == "Campus" else []) +
-                              ["Review the customer's request and decide the next step"],
+                              ["Answer the unresolved customer question" if question else
+                               "Review the customer's request and decide the next step"],
         }
         draft = {"conversation_id": state.conversation_id, "customer_alias": chat.demo_alias,
                  "country": chat.country, "language": chat.language, "card": chat.selected_card,
@@ -354,11 +375,26 @@ class WebApp:
                     "citations": [], "route": "HANDOFF_UNVERIFIED", "card": chat.selected_card}
         state.handoff_record = record
         return {"answer": (f"Registrei seu pedido de atendimento humano. Protocolo {record['handoff_id']}; "
-                           "status PENDING_REVIEW. Ainda não há pessoa atribuída."
+                           "status PENDING_REVIEW. " + self._assignment_message(record, chat.language)
                            if chat.language == "pt" else
                            f"Registré tu solicitud de atención humana. Referencia {record['handoff_id']}; "
-                           "estado PENDING_REVIEW. Aún no se asignó a nadie."),
+                           "estado PENDING_REVIEW. " + self._assignment_message(record, chat.language)),
                 "citations": [], "route": "HANDOFF_RECORDED", "card": chat.selected_card}
+
+    @staticmethod
+    def _assignment_message(record: dict[str, Any], language: str) -> str:
+        packet = record.get("packet")
+        if isinstance(packet, str):
+            packet = json.loads(packet)
+        assignment = packet.get("assignment") if packet else None
+        if assignment:
+            agent_id = assignment["agent_id"]
+            return (f"Atribuição simulada ao agente {agent_id}; ele não foi contatado."
+                    if language == "pt" else
+                    f"Asignación simulada al agente {agent_id}; no se lo contactó.")
+        return ("Nenhum agente elegível foi atribuído; o pedido está na fila."
+                if language == "pt" else
+                "No se asignó un agente elegible; la solicitud está en la cola.")
 
     @staticmethod
     def _options_overview(language: str) -> dict[str, Any]:
@@ -464,6 +500,14 @@ class WebApp:
                 state.application_draft = None
             return None
         card = action["card"]
+        if action["kind"] == "handoff_offer":
+            state.pending_action = None
+            if decision:
+                return self._record_handoff(state, chat, action.get("question"))
+            return {"answer": ("Tudo bem. Não registrei pedido de atendimento humano."
+                               if chat.language == "pt" else
+                               "De acuerdo. No registré una solicitud de atención humana."),
+                    "citations": [], "route": "HANDOFF_DECLINED", "card": card}
         if action["kind"] == "application_intent_clarify":
             state.pending_action = None
             if decision:
@@ -695,6 +739,14 @@ class WebApp:
                               "citations": [], "route": "ASK_APPLICATION_INTENT", "card": card}
                 else:
                     result = self.limited_respond(chat, message)
+                if self._needs_handoff_offer(result):
+                    state.pending_action = pending("handoff_offer", result.get("card") or chat.selected_card)
+                    state.pending_action["question"] = message.strip()[:500]
+                    result = {**result, "answer": result["answer"] + (
+                        " Quer que eu registre um pedido para um especialista em crédito revisar sua pergunta? Responda sim ou não."
+                        if chat.language == "pt" else
+                        " ¿Quieres que registre una solicitud para que un especialista en crédito revise tu pregunta? Responde sí o no."),
+                        "route": "OFFER_HANDOFF"}
                 if result["route"] == "ASK_CARD":
                     state.pending_action = pending("choose_card", None,
                                                    apply_after=result.get("wants_application", False))
@@ -730,6 +782,14 @@ class WebApp:
             raise ValueError("Unknown action")
         state.events = state.events[-50:]
         return self.snapshot(state)
+
+    @staticmethod
+    def _needs_handoff_offer(result: dict[str, Any]) -> bool:
+        if result.get("route") not in {"ANSWER_FACT", "SERVICE_BOUNDARY"}:
+            return False
+        citations = result.get("citations") or []
+        return bool(result.get("unresolved")) or any(fid.startswith("UNKNOWN.") for fid in citations) or (
+            result.get("route") == "ANSWER_FACT" and not citations)
 
     @staticmethod
     def _application_message(record: dict[str, Any], language: str) -> str:

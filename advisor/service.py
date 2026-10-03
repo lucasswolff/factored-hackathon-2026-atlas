@@ -308,8 +308,9 @@ def _generate(system: str, user: str, model: str) -> dict:
     if not key:
         raise RuntimeError("ANTHROPIC_API_KEY is not set")
     schema = {"type": "object", "properties": {
-        "answer": {"type": "string"}, "citations": {"type": "array", "items": {"type": "string"}}},
-        "required": ["answer", "citations"], "additionalProperties": False}
+        "answer": {"type": "string"}, "citations": {"type": "array", "items": {"type": "string"}},
+        "unresolved": {"type": "boolean"}},
+        "required": ["answer", "citations", "unresolved"], "additionalProperties": False}
     payload = {"model": model, "max_tokens": 900, "system": system,
                "messages": [{"role": "user", "content": user}],
                "output_config": {"format": {"type": "json_schema", "schema": schema}}}
@@ -328,7 +329,8 @@ def _generate(system: str, user: str, model: str) -> dict:
         raise RuntimeError(f"Model unavailable ({exc.code if isinstance(exc, HTTPError) else type(exc).__name__})") from None
     content = "".join(b["text"] for b in raw.get("content", []) if b.get("type") == "text")
     result = json.loads(content)
-    if not isinstance(result, dict) or set(result) != {"answer", "citations"}:
+    if (not isinstance(result, dict) or set(result) != {"answer", "citations", "unresolved"}
+            or not isinstance(result["unresolved"], bool)):
         raise RuntimeError("Invalid model response")
     return result
 
@@ -507,7 +509,11 @@ def respond(conversation: Conversation, message: str,
                 "route": "CLARIFY", "fact_version": FACT_VERSION}
     boundary = _boundary(message, conversation.language)
     if boundary:
-        return {"answer": boundary, "citations": [], "route": "SERVICE_BOUNDARY", "fact_version": FACT_VERSION}
+        cash_advance = any(term in lower for term in (
+            "adelanto de efectivo", "avance de efectivo", "saque em dinheiro",
+            "adiantamento em dinheiro", "cash advance"))
+        return {"answer": boundary, "citations": ["UNKNOWN.COST"] if cash_advance else [],
+                "route": "SERVICE_BOUNDARY", "fact_version": FACT_VERSION}
     # The first partial-cycle waiver is an exact catalog rule. Answer directly
     # so a yes/no model opening cannot contradict the fee outcome.
     if (conversation.selected_card in {"Rewards", "Summit"} and
@@ -641,6 +647,8 @@ def respond(conversation: Conversation, message: str,
         "Qualify a benefit only when the question asks for specific access, coverage, a guarantee, or a decision. "
         "Use one concise paragraph, normally 30-75 words; show arithmetic steps only when needed. "
         "Put fact IDs in the citations array, not inline in the answer. "
+        "Set unresolved true only when the supplied facts cannot establish what the customer asks; "
+        "a question needing the customer to choose a card or clarify wording is not unresolved. "
         "Never infer a selected card from prior assistant mistakes. Do not choose a card when none is named. "
         "Public card terms do not require sign-in. In the browser flow, choosing a fixture enables profile use; do not demand another profile permission. "
         "If country or card is needed, ask a short clarifying question. "
@@ -674,6 +682,7 @@ def respond(conversation: Conversation, message: str,
                 not all(isinstance(fid, str) and fid in allowed for fid in result["citations"])):
                 raise RuntimeError("Invalid model answer or citation")
             answer, citations, route = result["answer"].strip(), result["citations"], "ANSWER_FACT"
+            unresolved = result.get("unresolved", False)
             if not UNVERIFIED_ACTION.search(answer):
                 break
         else:
@@ -682,12 +691,12 @@ def respond(conversation: Conversation, message: str,
                       if conversation.language == "pt" else
                       "Puedo ayudarte con las tarjetas y una evaluación inicial con tu consentimiento. "
                       "No se registró ninguna solicitud nueva en esta respuesta.")
-            citations, route = [], "SERVICE_BOUNDARY"
+            citations, route, unresolved = [], "SERVICE_BOUNDARY", False
     except (RuntimeError, ValueError, json.JSONDecodeError):
         answer = ("Não consigo verificar uma resposta segura agora. Pergunte novamente mais tarde."
                   if conversation.language == "pt" else "No puedo verificar una respuesta segura ahora. Inténtalo más tarde.")
-        citations, route = [], "FALLBACK"
+        citations, route, unresolved = [], "FALLBACK", False
     conversation.turns.extend([{"role": "user", "text": message},
                                {"role": "assistant", "text": answer}])
     return {"answer": answer, "citations": citations, "route": route,
-            "fact_version": FACT_VERSION}
+            "fact_version": FACT_VERSION, "unresolved": unresolved}

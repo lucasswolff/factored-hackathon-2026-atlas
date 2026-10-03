@@ -16,6 +16,7 @@ from http.cookies import SimpleCookie
 from typing import Any
 
 from .aws_state import DynamoAnswerCounter, DynamoApplicationStore, DynamoSessionStore
+from .agents import DynamoAgentDirectory
 from .synthetic_data import SyntheticDirectory
 from .web import AdvisorServer, WebApp
 
@@ -57,7 +58,8 @@ def _initialize() -> None:
     _sessions = DynamoSessionStore(table)
     _app = WebApp(directory=SyntheticDirectory(), applications=DynamoApplicationStore(table),
                   hosted=True, answer_limit=limit, answer_counter=DynamoAnswerCounter(table),
-                  on_model_attempt=lambda: _emit({"event": "model_attempt"}))
+                  on_model_attempt=lambda: _emit({"event": "model_attempt"}),
+                  agent_directory=DynamoAgentDirectory(table))
     _server = AdvisorServer(("127.0.0.1", 0), _app)
     threading.Thread(target=_server.serve_forever, daemon=True).start()
 

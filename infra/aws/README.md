@@ -36,6 +36,14 @@ does not hold a Lambda invocation open.
 The reviewer queue still requires its separate reviewer code. This is a
 hackathon demo, not customer authentication or a production lending service.
 
+The private organizer agent CSV is excluded from Git and the Lambda ZIP.
+After provisioning the DynamoDB table, import only chat routing fields with
+`python3 -m infra.aws.import_agent_roster --profile factored-hackathon-2026`.
+The importer keeps Active Digital/Hybrid credit agents and writes no names,
+email addresses, or phone numbers. This is a one-time roster snapshot; rerun
+it if the source changes. Hosted handoffs without a loaded eligible roster
+remain queued without an assignee.
+
 ## Automatic code deployment from protected main
 
 The [GitHub Actions workflow](../../.github/workflows/deploy-advisor.yml) tests

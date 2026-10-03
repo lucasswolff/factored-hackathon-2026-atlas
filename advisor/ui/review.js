@@ -49,7 +49,7 @@ async function loadReview() {
        r => (r.precheck_reasons || []).map(reason => reasonNames[reason] || reason).join("; ") || "No precheck reasons recorded",
        r => r.status]);
     renderTable("handoffsList",
-      ["Reference", "Fixture", "Country", "Language", "Card", "Reason", "Verified context", "Prior actions", "Open questions", "Status", "Assigned employee"],
+      ["Reference", "Fixture", "Country", "Language", "Card", "Reason", "Verified context", "Prior actions", "Open questions", "Status", "Mock assignee"],
       data.handoffs,
       [r => r.handoff_id, r => r.customer_alias, r => r.country,
        r => r.language === "pt" ? "Portuguese" : "Spanish", r => r.card,
@@ -59,8 +59,9 @@ async function loadReview() {
          ...r.packet.actions_taken.prechecks.map(p => `${p.card}: ${p.status} (${p.reasons.join(", ") || "no reasons"}); policy ${p.policy_version}; consent ${p.consent_at}`),
          r.packet.actions_taken.application ? `Application ${r.packet.actions_taken.application.reference}: ${r.packet.actions_taken.application.status}` : "No application recorded"
        ].join("; ") : "Unavailable",
-       r => r.packet ? r.packet.open_questions.join("; ") : "Unavailable",
-       r => r.status, () => "None"]);
+       r => r.packet ? [r.packet.unresolved_question, ...r.packet.open_questions].filter(Boolean).join("; ") : "Unavailable",
+       r => r.status,
+       r => r.packet?.assignment ? `${r.packet.assignment.agent_id} (mock roster assignment)` : "Unassigned"]);
   } catch (error) {
     const alert = document.getElementById("reviewError");
     alert.hidden = false;

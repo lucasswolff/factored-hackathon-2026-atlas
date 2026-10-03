@@ -33,7 +33,8 @@ class ConversationTests(unittest.TestCase):
                 self.assertEqual((intent.kind, intent.lower_cost), (route, lower_cost))
 
     def test_sonnet_uses_low_effort_and_haiku_omits_it(self):
-        wire = {"content": [{"type": "text", "text": json.dumps({"answer": "OK", "citations": []})}]}
+        wire = {"content": [{"type": "text", "text": json.dumps(
+            {"answer": "OK", "citations": [], "unresolved": False})}]}
         class Response(io.BytesIO):
             def __enter__(self):
                 return self

@@ -66,12 +66,17 @@ it never confirms an action that the server has not offered. Only one card
 application can be recorded in a conversation; another request needs a new
 conversation. Model-generated claims that an application was sent or a person
 was assigned are rejected before display. A customer can request a person in
-chat. The server records that request locally with read-back, but does not
-assign or contact an employee. A verified handoff stores a compact reviewer
+chat. When source facts cannot establish an answer, the server offers a
+handoff and waits for a yes/no reply. After yes, it records a mock roster
+assignment with read-back; no employee is contacted. Eligible agents are
+Active Digital/Hybrid credit specialists who list the chat language. A
+same-country agent is preferred; the selected country is a routing proxy,
+not an inferred accent. A verified handoff stores a compact reviewer
 packet: selected fixture and card, authorized profile context, consented
 precheck outcomes and policy version, any verified mock application reference,
-offer/fact versions, and open review questions. It does not copy chat text or
-raw source rows into the review queue.
+offer/fact versions, the unresolved question when one prompted review, the
+mock agent ID, and open review questions. It does not copy a full chat transcript,
+contact details, or raw source rows into the review queue.
 Retrying the same confirmation reuses the record. The SQLite store lives at
 `advisor/.local/mock_applications.sqlite` (ignored by Git and mode 0600); it
 contains fixture aliases and action metadata, not raw customer records or
@@ -82,7 +87,7 @@ requests for a person, including precheck reason summaries and handoff packets. 
 on the local demo server without reviewer authentication and contains fixture
 aliases and synthetic workflow records only. Existing local SQLite files are
 migrated automatically; older records may lack reason summaries. No reviewer
-action or human assignment is connected.
+action or live human assignment is connected.
 In hosted mode the judge-facing app is public and uses fictional fixtures;
 `/review` and `/api/review` require a separate reviewer code. See the
 [deployment guide](../docs/deploy.md).
@@ -137,7 +142,7 @@ Delete the index to rebuild it after replacing the source files. The service
 reads a selected customer's financial fields only after test-session selection
 and separate profile-use permission.
 
-Real authentication and actual human assignment are not connected. The mock
+Real authentication and live human assignment are not connected. The mock
 application is available in the browser UI, not the CLI. No precheck result is
 an approval. This CLI is for testing, not
 final judge deployment. See the [conversation contract](../plan/conversation_contract.md)

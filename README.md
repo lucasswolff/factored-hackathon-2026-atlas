@@ -20,6 +20,8 @@ The [architecture diagram](docs/architecture.svg) shows the deployed AWS path. T
 
 **Current priority:** evaluate Spanish/Portuguese product answers and prepare submission evidence. The [AWS deployment](infra/aws/README.md) has passed a [judge rehearsal](docs/judge_rehearsal_2026-10-02.md); check its live status before sharing the URL. The local browser advisor remains available with `python3 -m advisor.web` at `http://127.0.0.1:8765/`. Its public-answer default is Sonnet 5 at low effort after a [development latency comparison](plan/conversation_data/latency_model_comparison.md); the deterministic customer and precheck flow stays local. Read the [project plan](docs/project_plan.md), [MVP requirements](docs/mvp_requirements.md), and [AGENTS.md](AGENTS.md) before extending scope.
 
+The six-slide [Atlas presentation](presentation/README.md) includes a real Spanish conversation capture, architecture, data sources, operational checks, and the path from prototype to a customer-facing service.
+
 The [release and evaluation plan](docs/release_readiness.md) maps the organizer
 requirements to the remaining evaluation, measurement, and submission work.
 

@@ -93,7 +93,8 @@ aliases and synthetic workflow records only. Existing local SQLite files are
 migrated automatically; older records may lack reason summaries. No reviewer
 action or live human assignment is connected.
 In hosted mode the judge-facing app is public and uses fictional fixtures;
-`/review` and `/api/review` require a separate reviewer code. See the
+`/review` displays a reviewer-code form, while `/api/review` requires that code
+before returning queue data. The code stays only in the page's memory. See the
 [deployment guide](../docs/deploy.md).
 
 The short consent → precheck → application confirmation sequence uses an

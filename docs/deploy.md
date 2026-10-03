@@ -61,10 +61,11 @@ omits the `Secure` cookie flag so the browser retains the test session. Never
 use it for a deployed URL.
 
 The judge-facing app opens without a code and asks the visitor to choose a
-fictional demo customer. The reviewer page at `/review` and its `/api/review`
-endpoint require HTTP Basic username `reviewer` and password
-`ADVISOR_REVIEW_CODE`. Share reviewer access only with the demo operator and
-use it only behind HTTPS.
+fictional demo customer. `/review` shows a sign-in form without exposing queue
+data. After the operator enters `ADVISOR_REVIEW_CODE`, the page sends HTTP Basic
+username `reviewer` and that code to the protected `/api/review` endpoint.
+The code stays only in the page's memory and is cleared on reload. Share it
+only with the demo operator and use the queue only behind HTTPS.
 
 Choosing a demo customer is **not** authentication. The public app contains no
 source customer records. Within a conversation, the server binds the chosen
@@ -80,8 +81,8 @@ option is to mount a host directory as `/state` and bind the HTTP port to
 `127.0.0.1` only. Then check:
 
 1. `GET /healthz` returns `ok` without credentials.
-2. `GET /` and `/api/state` work without credentials. `/review` and
-   `/api/review` reject visitors without the reviewer code.
+2. `GET /`, `/api/state`, and the empty `/review` sign-in shell work without
+   credentials. `/api/review` rejects visitors without the reviewer code.
 3. Run direct and campaign starts, Spanish and Portuguese, consent and decline,
    and one confirmed mock application. Verify its reference in the queue.
 4. Restart the container with the same volume. The application stays in the

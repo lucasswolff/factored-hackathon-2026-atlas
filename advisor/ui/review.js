@@ -8,6 +8,13 @@ const reasonNames = {
   income_below_demo_threshold: "Estimated income below the synthetic threshold",
   synthetic_thresholds_met: "Numeric synthetic thresholds met"
 };
+let reviewerCode = null;
+
+function showResults(visible) {
+  document.querySelectorAll(".review-results").forEach(section => { section.hidden = !visible; });
+  document.getElementById("reviewLogin").hidden = visible;
+  document.getElementById("refreshReview").hidden = !visible;
+}
 
 function cell(row, value, tag = "td") {
   const element = document.createElement(tag);
@@ -37,10 +44,26 @@ function renderTable(id, headings, records, columns) {
 }
 
 async function loadReview() {
+  const alert = document.getElementById("reviewError");
+  const refresh = document.getElementById("refreshReview");
+  alert.hidden = true;
+  refresh.disabled = true;
   try {
-    const response = await fetch("/api/review", {cache: "no-store"});
+    const attemptedLogin = reviewerCode !== null;
+    const headers = reviewerCode === null ? {} : {Authorization: `Basic ${btoa(`reviewer:${reviewerCode}`)}`};
+    const response = await fetch("/api/review", {cache: "no-store", headers});
+    if (response.status === 401) {
+      reviewerCode = null;
+      showResults(false);
+      if (attemptedLogin) {
+        alert.textContent = "Reviewer code not accepted. Try again.";
+        alert.hidden = false;
+      }
+      return;
+    }
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Review queue unavailable");
+    showResults(true);
     renderTable("applicationsList",
       ["Reference", "Fixture", "Country", "Card", "Precheck", "Reason summary", "Status"],
       data.applications,
@@ -82,10 +105,19 @@ async function loadReview() {
       threads.append(details);
     }
   } catch (error) {
-    const alert = document.getElementById("reviewError");
     alert.hidden = false;
     alert.textContent = error.message;
+  } finally {
+    refresh.disabled = false;
   }
 }
 
+document.getElementById("reviewLogin").addEventListener("submit", event => {
+  event.preventDefault();
+  const input = document.getElementById("reviewCode");
+  reviewerCode = input.value;
+  input.value = "";
+  loadReview();
+});
+document.getElementById("refreshReview").addEventListener("click", loadReview);
 loadReview();

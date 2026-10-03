@@ -843,7 +843,8 @@ class Handler(BaseHTTPRequestHandler):
         if kind.casefold() == "basic" and user == "reviewer" and hmac.compare_digest(password, expected_code):
             return True
         self.send_response(HTTPStatus.UNAUTHORIZED)
-        self.send_header("WWW-Authenticate", 'Basic realm="Card Atlas review", charset="UTF-8"')
+        # The static review page handles sign-in; do not trigger a browser
+        # Basic-auth modal, which Lambda Function URLs also remap away.
         self.send_header("Cache-Control", "no-store")
         self.send_header("Content-Length", "0")
         self.end_headers()
@@ -878,7 +879,10 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(b"ok")
             return
-        if path in {"/review", "/api/review"} and not self._review_authorized():
+        # Lambda Function URLs remap WWW-Authenticate, so browsers do not show
+        # the Basic-auth prompt. Serve only the static sign-in shell publicly;
+        # the queue data still requires the reviewer credential.
+        if path == "/api/review" and not self._review_authorized():
             return
         try:
             sid, state, fresh = self.server.app.session(self.headers.get("Cookie"))

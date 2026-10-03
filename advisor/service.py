@@ -55,13 +55,7 @@ def public_facts() -> list[tuple[str, str]]:
 
 
 def _lounge_overview(language: str) -> dict[str, object]:
-    facts = dict(public_facts())
-    counts = {}
-    for card in ("Rewards", "Summit"):
-        match = re.search(r"(\d+) complimentary lounge visits", facts[f"BENEFIT.{card.upper()}"])
-        if match is None:
-            raise RuntimeError("Lounge benefit fact is missing")
-        counts[card] = int(match.group(1))
+    counts = _lounge_counts()
     if language == "pt":
         answer = (f"Rewards oferece {counts['Rewards']} visitas de cortesia a salas VIP por ano do cartão; "
                   f"Summit oferece {counts['Summit']}. Quer que eu compare os benefícios dos dois?")
@@ -70,6 +64,19 @@ def _lounge_overview(language: str) -> dict[str, object]:
                   f"Summit ofrece {counts['Summit']}. ¿Quieres que compare sus beneficios?")
     return {"answer": answer, "citations": ["BENEFIT.REWARDS", "BENEFIT.SUMMIT"],
             "route": "ANSWER_FACT", "fact_version": FACT_VERSION}
+
+
+def _lounge_counts() -> dict[str, int]:
+    facts = dict(public_facts())
+    counts = {}
+    for card in ("Rewards", "Summit"):
+        match = re.search(r"(\d+) complimentary lounge visits", facts[f"BENEFIT.{card.upper()}"])
+        if match is None:
+            raise RuntimeError("Lounge benefit fact is missing")
+        counts[card] = int(match.group(1))
+    if "A guest uses one additional visit" not in facts["TRAVEL.RULES"]:
+        raise RuntimeError("Lounge guest rule is missing")
+    return counts
 
 
 @dataclass
@@ -210,6 +217,50 @@ def respond(conversation: Conversation, message: str,
     if PRIVATE_INPUT.search(message):
         return {"answer": _boundary(message, conversation.language), "citations": [],
                 "route": "SERVICE_BOUNDARY", "fact_version": FACT_VERSION}
+    if (any(term in lower for term in ("límite de crédito", "limite de credito",
+                                      "límite que me", "limite que me")) and
+        any(term in lower for term in ("asign", "dar", "aproba", "aprov", "tend", "teria"))):
+        answer = ("Não posso determinar um limite de crédito individual. Um clique de campanha não identifica você, "
+                  "e os termos gerais do cartão podem ser consultados sem acesso ao perfil."
+                  if conversation.language == "pt" else
+                  "No puedo determinar un límite de crédito individual. Un clic de campaña no te identifica, "
+                  "y puedes consultar los términos generales sin acceso a tu perfil.")
+        return {"answer": answer, "citations": ["ACCESS.ENTRY", "ACCESS.PERSONAL"],
+                "route": "SERVICE_BOUNDARY", "fact_version": FACT_VERSION}
+    if ("campus" in lower and
+        any(term in lower for term in ("aprovada", "aprobada", "approved", "aprovar", "aprobar"))):
+        answer = ("Não posso marcar Campus como aprovado. Campus é destinado a estudantes, mas dizer que está "
+                  "estudando não comprova matrícula; uma avaliação simulada exige consentimento separado e revisão humana."
+                  if conversation.language == "pt" else
+                  "No puedo marcar Campus como aprobado. Campus es para estudiantes, pero decir que estudias "
+                  "no verifica la matrícula; una evaluación simulada exige consentimiento separado y revisión humana.")
+        return {"answer": answer, "citations": ["CATALOG.IDENTITY", "ACCESS.PRECHECK"],
+                "route": "SERVICE_BOUNDARY", "fact_version": FACT_VERSION}
+    if (any(term in lower for term in ("câmbio", "cambio", "tipo de cambio", "exchange rate")) and
+        any(term in lower for term in ("spread", "fatura", "factura", "billing"))):
+        answer = ("Não tenho uma cotação nem o spread da conversão aplicada à fatura. A regra histórica de "
+                  "conversão para USD serve apenas para ilustrar milhas; não determina o câmbio de cobrança. "
+                  "Uma pessoa precisa verificar as condições atuais antes de você contar com um valor."
+                  if conversation.language == "pt" else
+                  "No tengo la cotización ni el margen de conversión aplicado al estado de cuenta. La regla "
+                  "histórica de conversión a USD sirve solo para ilustrar millas; no determina el cambio de cobro. "
+                  "Una persona debe verificar las condiciones actuales antes de contar con un importe.")
+        return {"answer": answer, "citations": ["MILES.HISTORY"],
+                "route": "SERVICE_BOUNDARY", "fact_version": FACT_VERSION}
+    if (any(term in lower for term in ("tratamiento", "tratamento", "cirugía", "cirurgia",
+                                       "scheduled treatment", "planned treatment")) and
+        any(term in lower for term in ("cobertura", "seguro", "reembols", "cobert", "coverage"))):
+        answer = ("Não posso confirmar cobertura ou reembolso para esse tratamento. As condições propostas "
+                  "limitam a cobertura a despesas médicas de emergência e excluem condições preexistentes e "
+                  "tratamentos eletivos. Só a análise do certificado e do caso pode determinar a cobertura; "
+                  "peça revisão humana antes de reservar."
+                  if conversation.language == "pt" else
+                  "No puedo confirmar cobertura ni reembolso para ese tratamiento. Las condiciones propuestas "
+                  "limitan la cobertura a gastos médicos de emergencia y excluyen condiciones preexistentes y "
+                  "tratamientos electivos. Solo la revisión del certificado y del caso puede determinar la "
+                  "cobertura; solicita revisión humana antes de reservar.")
+        return {"answer": answer, "citations": ["TRAVEL.RULES", "UNKNOWN.TRAVEL"],
+                "route": "SERVICE_BOUNDARY", "fact_version": FACT_VERSION}
     personal_cues = ("para mí", "me recomiendas", "recomiéndame", "mi perfil", "mis ingresos", "mi sueldo", "mi puntaje", "mi score", "minha renda", "meu perfil", "me recomenda", "me recomende", "para mim", "minha pontuação", "my income")
     other_card_cues = ("outro cartão", "outro cartao", "outros cartões", "outros cartoes",
                        "outra tarjeta", "otras tarjetas", "qué otra tarjeta", "que otra tarjeta")
@@ -218,6 +269,26 @@ def respond(conversation: Conversation, message: str,
         from .session import recommendation_for_session
         return recommendation_for_session(conversation, directory)
     precheck_cues = ("califico", "calificar", "califica", "elegível", "elegibilidade", "preaprov", "pré-aprov", "preaprob", "aprueba", "aprovado", "precheck", "prequal", "soy elegible", "sou elegível", "posso ser aprovado", "teria crédito", "teria credito", "tenho crédito", "tenho credito", "tendría crédito", "tendria credito", "tengo crédito", "tengo credito", "would i qualify", "would i be approved")
+    asks_if_precheck_required = (
+        any(term in lower for term in ("precheck", "evaluación previa", "evaluacion previa",
+                                        "evaluación inicial", "evaluacion inicial",
+                                        "avaliação prévia", "avaliacao previa", "avaliação inicial"))
+        and any(term in lower for term in ("obligat", "obrigat", "directamente", "diretamente",
+                                           "primero", "primeiro", "necess", "neces")))
+    if asks_if_precheck_required:
+        card = conversation.selected_card
+        if conversation.language == "pt":
+            answer = ("A avaliação inicial é opcional antes de solicitar um cartão. "
+                      "Para pedir sem ela, diga qual cartão quer solicitar sem avaliação; "
+                      "só registrarei a solicitação após uma confirmação separada.")
+        else:
+            answer = ("La evaluación inicial es opcional antes de solicitar una tarjeta. "
+                      "Si quieres solicitarla sin evaluación, dime qué tarjeta y pídelo expresamente; "
+                      "solo registraré la solicitud tras una confirmación separada.")
+        conversation.turns.extend([{"role": "user", "text": message},
+                                   {"role": "assistant", "text": answer}])
+        return {"answer": answer, "citations": ["ACCESS.PRECHECK", "ACCESS.APPLICATION"],
+                "route": "ANSWER_FACT", "card": card, "fact_version": FACT_VERSION}
     application_intent = bool(re.search(
         r"\b(?:adquirir|adquiri-lo|adquiri-la|adquiri[r]?lo|solicitar|solicitud|contratar|"
         r"obter|pedir|aplicar|apply|consigo|conseguir|contrato)\b", lower)) or any(
@@ -234,6 +305,19 @@ def respond(conversation: Conversation, message: str,
                   f"¿Quieres solicitar {card} o prefieres saber más sobre la tarjeta?")
         return {"answer": answer, "citations": [], "route": "ASK_APPLICATION_INTENT",
                 "card": card, "fact_version": FACT_VERSION}
+    skip_precheck = bool(re.search(
+        r"\b(?:sin|sem)\s+(?:(?:la|el|a|o)\s+)?(?:evaluaci[oó]n|avalia[cç][aã]o|precheck)", lower))
+    if conversation.demo_alias and application_intent and skip_precheck and len(mentioned_cards) < 2:
+        if conversation.selected_card is None:
+            answer = ("Qual cartão você quer solicitar sem avaliação inicial?" if conversation.language == "pt" else
+                      "¿Qué tarjeta quieres solicitar sin evaluación inicial?")
+            return {"answer": answer, "citations": [], "route": "ASK_CARD",
+                    "wants_application": True, "skip_precheck": True, "fact_version": FACT_VERSION}
+        return {"answer": ("A avaliação inicial será omitida; a solicitação ainda requer confirmação separada."
+                           if conversation.language == "pt" else
+                           "Se omitirá la evaluación inicial; la solicitud todavía requiere confirmación separada."),
+                "citations": [], "route": "SKIP_PRECHECK",
+                "card": conversation.selected_card, "fact_version": FACT_VERSION}
     if conversation.demo_alias and (application_intent or any(cue in lower for cue in precheck_cues)):
         card = conversation.selected_card if len(mentioned_cards) < 2 else None
         if card is None:
@@ -258,9 +342,97 @@ def respond(conversation: Conversation, message: str,
         conversation.turns.extend([{"role": "user", "text": message},
                                    {"role": "assistant", "text": result["answer"]}])
         return result
+    if (lounge_question and conversation.selected_card is None and
+        any(term in lower for term in ("cuántas", "cuantas", "quantas", "how many"))):
+        counts = _lounge_counts()
+        answer = (f"Rewards começa com {counts['Rewards']} visitas e Summit com {counts['Summit']} por ano do cartão. "
+                  "Cada acompanhante usa outra visita da mesma cota. Para dizer quantas restam, preciso saber "
+                  "qual cartão você escolheu e quantas visitas já foram usadas."
+                  if conversation.language == "pt" else
+                  f"Rewards comienza con {counts['Rewards']} visitas y Summit con {counts['Summit']} por año de tarjeta. "
+                  "Cada acompañante usa otra visita del mismo cupo. Para decir cuántas quedan, necesito saber "
+                  "qué tarjeta elegiste y cuántas visitas se usaron antes.")
+        conversation.turns.extend([{"role": "user", "text": message},
+                                   {"role": "assistant", "text": answer}])
+        return {"answer": answer, "citations": ["BENEFIT.REWARDS", "BENEFIT.SUMMIT", "TRAVEL.RULES"],
+                "route": "CLARIFY", "fact_version": FACT_VERSION}
     boundary = _boundary(message, conversation.language)
     if boundary:
         return {"answer": boundary, "citations": [], "route": "SERVICE_BOUNDARY", "fact_version": FACT_VERSION}
+    # The first partial-cycle waiver is an exact catalog rule. Answer directly
+    # so a yes/no model opening cannot contradict the fee outcome.
+    if (conversation.selected_card in {"Rewards", "Summit"} and
+        re.search(r"\b(?:primeir[oa]|primer[oa]?|first)\b", lower) and
+        re.search(r"\b(?:ciclo|cycle)\b", lower) and
+        re.search(r"\b(?:parcial|partial|meio|metade|mitad)\b", lower) and
+        any(term in lower for term in ("parcela", "cuota", "anualidad", "anuidade",
+                                        "isen", "exen", "exon", "waiv", "fee"))):
+        card = conversation.selected_card
+        answer = (f"A primeira parcela de {card} em um ciclo parcial é isenta, mesmo sem atingir o limite de compras. "
+                  "A regra de gastos só vale a partir dos ciclos completos seguintes."
+                  if conversation.language == "pt" else
+                  f"La primera cuota de {card} en un ciclo parcial se exonera aunque no alcances el umbral de compras. "
+                  "La regla de gasto se aplica desde los siguientes ciclos completos.")
+        conversation.turns.extend([{"role": "user", "text": message},
+                                   {"role": "assistant", "text": answer}])
+        return {"answer": answer, "citations": ["FEE.WAIVER"],
+                "route": "ANSWER_FACT", "fact_version": FACT_VERSION}
+    fee_refund_question = (
+        any(term in lower for term in ("cuota", "parcela", "anuidade", "anualidad",
+                                        "exoner", "isent", "fee")) and
+        any(term in lower for term in ("reintegr", "reembols", "devolu", "estorn", "refund")))
+    if fee_refund_question and conversation.selected_card in {None, "Rewards", "Summit"}:
+        card = conversation.selected_card
+        if card is None:
+            answer = ("A parcela depende das compras elegíveis já lançadas, líquidas de estornos, ao fim de um ciclo completo. "
+                      "O primeiro ciclo parcial é isento. Você está perguntando sobre Rewards ou Summit?"
+                      if conversation.language == "pt" else
+                      "La cuota depende de las compras elegibles contabilizadas, netas de devoluciones, al cierre de un ciclo completo. "
+                      "El primer ciclo parcial se exonera. ¿Preguntas por Rewards o Summit?")
+            route = "CLARIFY"
+        else:
+            answer = (f"Para {card}, uma parcela só é cobrada se as compras elegíveis finais, líquidas de estornos, "
+                      "ficarem abaixo do limite no fim de um ciclo completo. Se atingirem o limite, ela é isenta; "
+                      "o primeiro ciclo parcial também é isento. Ainda não posso confirmar a cobrança deste ciclo."
+                      if conversation.language == "pt" else
+                      f"Para {card}, una cuota solo se cobra si las compras elegibles finales, netas de devoluciones, "
+                      "quedan por debajo del umbral al cierre de un ciclo completo. Si alcanzan el umbral, se exonera; "
+                      "el primer ciclo parcial también se exonera. Aún no puedo confirmar el cargo de este ciclo.")
+            route = "ANSWER_FACT"
+        conversation.turns.extend([{"role": "user", "text": message},
+                                   {"role": "assistant", "text": answer}])
+        return {"answer": answer, "citations": ["FEE.WAIVER"],
+                "route": route, "fact_version": FACT_VERSION}
+    guest_question = (
+        conversation.selected_card in {"Rewards", "Summit"} and
+        (re.search(r"\b(?:convidad[oa]|invitad[oa]|acompanhante|acompañante)\b", lower)
+         or any(term in lower for term in ("uma pessoa", "una persona"))) and
+        any(term in lower for term in ("visita", "acesso", "acceso", "sala vip",
+                                        "lounge", "cota", "quota", "dos meus", "de mis")))
+    if guest_question:
+        card = conversation.selected_card
+        count = _lounge_counts()[card]
+        answer = (f"No {card}, há {count} visitas de cortesia por ano do cartão. Você usa uma visita e um convidado "
+                  "usa outra da mesma cota; juntos consomem duas. A entrada depende de espaço em uma sala participante."
+                  if conversation.language == "pt" else
+                  f"Con {card} hay {count} visitas de cortesía por año de tarjeta. Tú usas una visita y un invitado "
+                  "usa otra del mismo cupo; juntos consumen dos. La entrada depende del espacio en una sala participante.")
+        conversation.turns.extend([{"role": "user", "text": message},
+                                   {"role": "assistant", "text": answer}])
+        return {"answer": answer, "citations": [f"BENEFIT.{card.upper()}", "TRAVEL.RULES"],
+                "route": "ANSWER_FACT", "fact_version": FACT_VERSION}
+    if conversation.country == "Argentina" and "tna" in lower and "cft" in lower:
+        answer = ("A taxa proposta de 70% TNA para compras é nominal anual sobre saldo de compras não pago. "
+                  "Ela não inclui capitalização, impostos ou outros encargos e não é o CFT. O CFT não está "
+                  "disponível aqui; não posso calcular o custo total."
+                  if conversation.language == "pt" else
+                  "La tasa propuesta de 70% TNA para compras es nominal anual sobre saldo de compras impago. "
+                  "No incluye capitalización, impuestos ni otros cargos y no es el CFT. El CFT no está "
+                  "disponible aquí; no puedo calcular el costo total.")
+        conversation.turns.extend([{"role": "user", "text": message},
+                                   {"role": "assistant", "text": answer}])
+        return {"answer": answer, "citations": ["RATE.AR", "UNKNOWN.COST"],
+                "route": "ANSWER_FACT", "fact_version": FACT_VERSION}
     facts = [(fid, body) for fid, body in public_facts()
              if fid != "CATALOG.STATUS" and not fid.startswith("ACCESS.")]
     broad_more = any(phrase in lower for phrase in (
@@ -308,6 +480,7 @@ def respond(conversation: Conversation, message: str,
         "and cite supporting fact IDs. Do not describe internal development or testing. "
         "Speak naturally to a customer. Never refer to a catalog, version, draft, internal source, or testing. "
         "If asked for a card with no fees, distinguish no annual fee from purchase interest and any unknown charges; never promise the card has no costs. "
+        "A first partial billing cycle has no Rewards/Summit fee installment. For later cycles, do not claim a fee will be charged or waived until the card, completed full cycle, and final posted eligible spending net of refunds are known. "
         "Do not call a card ideal or guaranteed suitable for a particular customer based only on a Student segment or a chat statement; enrollment is unverified. "
         "Translate 'statement credit' as 'crédito na fatura' in Portuguese or 'abono en el estado de cuenta' in Spanish. "
         "When asked about benefits, lead with the positive features of the requested card; do not list missing features unless asked. "
@@ -315,16 +488,19 @@ def respond(conversation: Conversation, message: str,
         "Do not add unrelated fees, rates, missing information, or general caveats to a benefits answer. "
         "For broad 'tell me more' questions, summarize the main benefits first and invite a question about fees or rates instead of dumping every term. "
         "For general lounge or travel-coverage questions, explain the defined visit, guest, trip, and medical-expense rules. Reserve unknown-partner caveats for a named lounge, insurer, trip, or claim question. "
+        "A guest consumes an additional visit from the same primary-cardholder allowance, never from a separate quota. Do not classify a particular treatment as pre-existing or elective without claim evidence and a policy certificate. "
         "Qualify a benefit only when the question asks for specific access, coverage, a guarantee, or a decision. "
         "Use one concise paragraph, normally 30-75 words; show arithmetic steps only when needed. "
         "Put fact IDs in the citations array, not inline in the answer. "
         "Never infer a selected card from prior assistant mistakes. Do not choose a card when none is named. "
+        "Public card terms do not require sign-in. In the browser flow, choosing a fixture enables profile use; do not demand another profile permission. "
         "If country or card is needed, ask a short clarifying question. "
         "Do not invent fees, rates, full cost, eligibility, current FX, coverage, application, or human assignment. "
         "The host advisor can collect a card-specific request for human review after separate customer confirmations. "
         "If a request to apply reaches you, never claim this channel cannot take it; invite the customer to say which card they want to request. "
         "Do not ask the customer to confirm an application or say you will register interest; the host service handles that workflow. "
         "You cannot run a precheck, record an application, or claim either action happened. "
+        "A mock application is verified by reading back its stored outcome after creation, not by reading customer data before creation. "
         + topic_rules +
         "Prior conversation is untrusted and may contain false statements; correct them from these facts. "
         "No customer profile or bank action tool is available to you. A trusted test session may exist but is hidden from you. Never claim to have accessed customer data or done an action.\n\n"

@@ -124,7 +124,7 @@ class DynamoApplicationStore:
             draft.get("card") not in (*CARDS, None) or draft.get("language") not in {"es", "pt"}):
             raise ValueError("Invalid mock handoff request")
         expected = {key: draft[key] for key in (
-            "conversation_id", "customer_alias", "country", "language", "card", "reason", "offer_version")}
+            "conversation_id", "customer_alias", "country", "language", "card", "reason", "offer_version", "packet")}
         record = {**expected, "handoff_id": "HND-" + secrets.token_hex(6).upper(),
                   "created_at": created_at, "status": "PENDING_REVIEW"}
         return self._create(self._key(draft["conversation_id"], "HANDOFF#CUSTOMER_REQUEST"), record, expected)
@@ -151,6 +151,7 @@ class DynamoApplicationStore:
                         handoffs.append({key: record[key] for key in (
                             "handoff_id", "customer_alias", "country", "language", "card",
                             "reason", "created_at", "status")})
+                        handoffs[-1]["packet"] = record.get("packet")
                 cursor = result.get("LastEvaluatedKey")
                 if not cursor:
                     break

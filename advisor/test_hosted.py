@@ -179,8 +179,10 @@ class HostedTest(unittest.TestCase):
         self.assertIsNone(state["pending_action"])
         _, state, _ = self.judge("POST", "/api/chat", {"message": "¿Qué tarjeta me recomiendas?"})
         self.assertEqual(state["events"][-1]["route"], "POLICY_SUGGESTION")
+        self.assertEqual(state["conversation"]["selected_card"], "Horizon")
         _, state, _ = self.judge("POST", "/api/chat", {"message": "Quiero solicitar esta tarjeta"})
-        self.assertEqual(state["events"][-1]["route"], "APPLICATION_CONFIRM")
+        self.assertEqual(state["events"][-1]["route"], "ASK_PRECHECK_CONSENT")
+        self.assertEqual(state["pending_action"]["card"], "Horizon")
 
     def test_limits_refuse_without_calling_model(self):
         self.judge("GET", "/")

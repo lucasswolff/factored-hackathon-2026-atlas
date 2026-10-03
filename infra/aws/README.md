@@ -36,6 +36,34 @@ does not hold a Lambda invocation open.
 The reviewer queue still requires its separate reviewer code. This is a
 hackathon demo, not customer authentication or a production lending service.
 
+## Automatic code deployment from protected main
+
+The [GitHub Actions workflow](../../.github/workflows/deploy-advisor.yml) tests
+source-data-free advisor paths on pull requests to `main`. After a pull request
+is squash-merged, the resulting `push` to protected `main` repeats those tests,
+builds a Lambda ZIP from the explicit [file manifest](lambda_files.txt), and
+uploads it to the existing function. It waits for the update, compares the live
+code hash with the ZIP hash, and checks `/healthz`. The Function URL stays the
+same. A failed test prevents deployment; a failed post-deployment health check
+marks the workflow failed but does not automatically roll back the Lambda code.
+
+GitHub Actions assumes a short-lived AWS role through OIDC. The trust policy is
+bound to this repository's immutable owner/repository IDs and `main` ref. Its
+policy permits only `UpdateFunctionCode` and the Lambda reads needed to verify
+the advisor function. It cannot read the hosted secret parameter, access the
+table, or change function settings. The role ARN is not a credential and no AWS
+key is stored in GitHub. Terraform bootstraps this role and provider; the live
+AWS account has already received them. Terraform manages infrastructure and
+ignores later Lambda ZIP/hash drift so a local `terraform apply` does not
+overwrite a release from `main`.
+
+Local edits, feature-branch pushes, and pull requests do not update the site.
+Only a passing workflow on a `main` push deploys code. Source-backed tests that
+need organizer CSVs still run locally; the CI suite uses fictional hosted
+fixtures because the source CSVs are deliberately absent from the public repo.
+The workflow is activated when its PR is merged into `main`; until then, the
+current live code remains the previously deployed local package.
+
 ## Credentials and state
 
 The deployment uses a **Standard SecureString** Systems Manager parameter

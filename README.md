@@ -1,8 +1,18 @@
 # Credit-product advisor
 
+Public repository: https://github.com/lucasswolff/factored-hackathon-2026-atlas.
+The organizer PDFs are excluded from the public repository because a supplied
+data dictionary contains participant-only source access credentials. References
+to those PDFs in planning documents refer to local participant copies. The
+[judge rehearsal](docs/judge_rehearsal_2026-10-02.md) records the latest deployed
+workflow and bounded concurrency results.
+The [AWS deployment guide](infra/aws/README.md#automatic-code-deployment-from-protected-main)
+describes the pull-request test and automatic deployment triggered by a push
+to protected `main`.
+
 The planned project is an AI-assisted **Credit-Product Info & Eligibility Support** workflow. A visitor clicks a campaign card tied to a named offer or opens the advisor directly, then chooses an allowlisted demo customer before asking questions in Spanish or Portuguese. That choice enables profile-based suggestions; it is not real authentication. A card-specific precheck needs separate chat consent. An anonymous income entry does not produce a suggestion. After a separate chat confirmation, the browser can record a **mock application** for human review. Verified human handoff remains future work. The advisor does not approve credit or create a real product.
 
-**Current priority:** improve and independently evaluate Spanish/Portuguese product answers, then rehearse the hosted judge journey. The [AWS deployment](infra/aws/README.md) is installed but disabled outside evaluation; the local browser advisor remains available with `python3 -m advisor.web` at `http://127.0.0.1:8765/`. Its public-answer default is Sonnet 5 at low effort after a [development latency comparison](plan/conversation_data/latency_model_comparison.md); the deterministic customer and precheck flow stays local. Read the [project plan](docs/project_plan.md), [MVP requirements](docs/mvp_requirements.md), and [AGENTS.md](AGENTS.md) before extending scope.
+**Current priority:** evaluate Spanish/Portuguese product answers and prepare submission evidence. The [AWS deployment](infra/aws/README.md) has passed a [judge rehearsal](docs/judge_rehearsal_2026-10-02.md); check its live status before sharing the URL. The local browser advisor remains available with `python3 -m advisor.web` at `http://127.0.0.1:8765/`. Its public-answer default is Sonnet 5 at low effort after a [development latency comparison](plan/conversation_data/latency_model_comparison.md); the deterministic customer and precheck flow stays local. Read the [project plan](docs/project_plan.md), [MVP requirements](docs/mvp_requirements.md), and [AGENTS.md](AGENTS.md) before extending scope.
 
 The [release and evaluation plan](docs/release_readiness.md) maps the organizer
 requirements to the security, deployment, measurement, and submission work

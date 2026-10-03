@@ -1,0 +1,765 @@
+{
+  "fact_version": "CONV-FACTS-2026-09-30-v5",
+  "case_file": "plan/conversation_data/ai_review_2026_10_03_labeled.jsonl",
+  "case_count": 24,
+  "retrieval_case_count": 18,
+  "workflow_only_case_ids": [
+    "AIRO-004",
+    "AIRO-008",
+    "AIRO-012",
+    "AIRO-019",
+    "AIRO-023",
+    "AIRO-024"
+  ],
+  "fact_count": 23,
+  "retrievable_fact_count": 17,
+  "top_k": 5,
+  "status": "development draft; not independently held out",
+  "scope": "product-fact retrieval only; universal disclaimer and ACCESS facts are supplied by rules; no route, generated answer, or action assessed",
+  "methods": {
+    "keyword": {
+      "model": "exact-token IDF overlap",
+      "metrics": {
+        "all": {
+          "n": 18,
+          "hit_at_1": 0.3333,
+          "recall_at_k": 0.3889,
+          "mrr": 0.4576
+        },
+        "by_language": {
+          "es": {
+            "n": 9,
+            "hit_at_1": 0.3333,
+            "recall_at_k": 0.3889,
+            "mrr": 0.4938
+          },
+          "pt": {
+            "n": 9,
+            "hit_at_1": 0.3333,
+            "recall_at_k": 0.3889,
+            "mrr": 0.4213
+          }
+        },
+        "by_route": {
+          "ANSWER_FACT": {
+            "n": 13,
+            "hit_at_1": 0.3846,
+            "recall_at_k": 0.3077,
+            "mrr": 0.4712
+          },
+          "CLARIFY": {
+            "n": 1,
+            "hit_at_1": 0.0,
+            "recall_at_k": 0.0,
+            "mrr": 0.1111
+          },
+          "HANDOFF": {
+            "n": 3,
+            "hit_at_1": 0.0,
+            "recall_at_k": 0.6667,
+            "mrr": 0.3333
+          },
+          "REFUSE_UNAUTHORIZED": {
+            "n": 1,
+            "hit_at_1": 1.0,
+            "recall_at_k": 1.0,
+            "mrr": 1.0
+          }
+        }
+      },
+      "cases": [
+        {
+          "case_id": "AIRO-001",
+          "language": "es",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "BENEFIT.CAMPUS"
+          ],
+          "top_k": [
+            "FEE.CO",
+            "CATALOG.IDENTITY",
+            "RATE.CO",
+            "FEE.AR",
+            "FEE.MX"
+          ],
+          "missing_at_k": [
+            "BENEFIT.CAMPUS"
+          ]
+        },
+        {
+          "case_id": "AIRO-002",
+          "language": "es",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "FEE.CO",
+            "FEE.WAIVER"
+          ],
+          "top_k": [
+            "FEE.CO",
+            "FEE.AR",
+            "CATALOG.IDENTITY",
+            "RATE.CO",
+            "FEE.MX"
+          ],
+          "missing_at_k": [
+            "FEE.WAIVER"
+          ]
+        },
+        {
+          "case_id": "AIRO-003",
+          "language": "es",
+          "route": "HANDOFF",
+          "gold_retrieval": [
+            "BENEFIT.SUMMIT",
+            "TRAVEL.RULES",
+            "UNKNOWN.TRAVEL"
+          ],
+          "top_k": [
+            "FEE.CO",
+            "CATALOG.IDENTITY",
+            "RATE.CO",
+            "FEE.AR",
+            "FEE.MX"
+          ],
+          "missing_at_k": [
+            "BENEFIT.SUMMIT",
+            "TRAVEL.RULES",
+            "UNKNOWN.TRAVEL"
+          ]
+        },
+        {
+          "case_id": "AIRO-005",
+          "language": "es",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "BENEFIT.HORIZON"
+          ],
+          "top_k": [
+            "FEE.MX",
+            "CATALOG.IDENTITY",
+            "FEE.AR",
+            "UNKNOWN.COST",
+            "FEE.CO"
+          ],
+          "missing_at_k": [
+            "BENEFIT.HORIZON"
+          ]
+        },
+        {
+          "case_id": "AIRO-006",
+          "language": "es",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "RATE.MX"
+          ],
+          "top_k": [
+            "RATE.MX",
+            "FEE.MX",
+            "UNKNOWN.COST",
+            "CATALOG.IDENTITY",
+            "BENEFIT.CAMPUS"
+          ],
+          "missing_at_k": []
+        },
+        {
+          "case_id": "AIRO-007",
+          "language": "es",
+          "route": "CLARIFY",
+          "gold_retrieval": [
+            "BENEFIT.REWARDS",
+            "BENEFIT.SUMMIT",
+            "TRAVEL.RULES"
+          ],
+          "top_k": [
+            "BENEFIT.CAMPUS",
+            "BENEFIT.HORIZON",
+            "RATE.MX",
+            "FEE.MX",
+            "UNKNOWN.COST"
+          ],
+          "missing_at_k": [
+            "BENEFIT.REWARDS",
+            "BENEFIT.SUMMIT",
+            "TRAVEL.RULES"
+          ]
+        },
+        {
+          "case_id": "AIRO-009",
+          "language": "es",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "FEE.AR",
+            "FEE.AR_REVIEW"
+          ],
+          "top_k": [
+            "FEE.AR",
+            "FEE.MX",
+            "CATALOG.IDENTITY",
+            "FEE.CO",
+            "BENEFIT.SUMMIT"
+          ],
+          "missing_at_k": [
+            "FEE.AR_REVIEW"
+          ]
+        },
+        {
+          "case_id": "AIRO-010",
+          "language": "es",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "BENEFIT.SUMMIT",
+            "MILES.HISTORY"
+          ],
+          "top_k": [
+            "FEE.AR",
+            "CATALOG.IDENTITY",
+            "MILES.HISTORY",
+            "FEE.WAIVER",
+            "RATE.AR"
+          ],
+          "missing_at_k": [
+            "BENEFIT.SUMMIT"
+          ]
+        },
+        {
+          "case_id": "AIRO-011",
+          "language": "es",
+          "route": "HANDOFF",
+          "gold_retrieval": [
+            "UNKNOWN.COST"
+          ],
+          "top_k": [
+            "RATE.AR",
+            "UNKNOWN.COST",
+            "FEE.AR",
+            "CATALOG.IDENTITY",
+            "FEE.MX"
+          ],
+          "missing_at_k": []
+        },
+        {
+          "case_id": "AIRO-013",
+          "language": "pt",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "BENEFIT.REWARDS",
+            "MILES.HISTORY"
+          ],
+          "top_k": [
+            "FEE.CO",
+            "CATALOG.IDENTITY",
+            "FEE.WAIVER",
+            "RATE.CO",
+            "FEE.AR"
+          ],
+          "missing_at_k": [
+            "BENEFIT.REWARDS",
+            "MILES.HISTORY"
+          ]
+        },
+        {
+          "case_id": "AIRO-014",
+          "language": "pt",
+          "route": "HANDOFF",
+          "gold_retrieval": [
+            "BENEFIT.CAMPUS"
+          ],
+          "top_k": [
+            "FEE.CO",
+            "CATALOG.IDENTITY",
+            "BENEFIT.CAMPUS",
+            "FEE.WAIVER",
+            "RATE.CO"
+          ],
+          "missing_at_k": []
+        },
+        {
+          "case_id": "AIRO-015",
+          "language": "pt",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "BENEFIT.SUMMIT",
+            "TRAVEL.RULES"
+          ],
+          "top_k": [
+            "FEE.CO",
+            "CATALOG.IDENTITY",
+            "FEE.WAIVER",
+            "RATE.CO",
+            "FEE.AR"
+          ],
+          "missing_at_k": [
+            "BENEFIT.SUMMIT",
+            "TRAVEL.RULES"
+          ]
+        },
+        {
+          "case_id": "AIRO-016",
+          "language": "pt",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "UNKNOWN.COST"
+          ],
+          "top_k": [
+            "FEE.CO",
+            "CATALOG.IDENTITY",
+            "RATE.CO",
+            "FEE.AR",
+            "FEE.MX"
+          ],
+          "missing_at_k": [
+            "UNKNOWN.COST"
+          ]
+        },
+        {
+          "case_id": "AIRO-017",
+          "language": "pt",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "FEE.MX",
+            "FEE.WAIVER"
+          ],
+          "top_k": [
+            "FEE.MX",
+            "FEE.AR",
+            "CATALOG.IDENTITY",
+            "FEE.CO",
+            "RATE.MX"
+          ],
+          "missing_at_k": [
+            "FEE.WAIVER"
+          ]
+        },
+        {
+          "case_id": "AIRO-018",
+          "language": "pt",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "MILES.HISTORY"
+          ],
+          "top_k": [
+            "FEE.MX",
+            "CATALOG.IDENTITY",
+            "FEE.AR",
+            "FEE.CO",
+            "FEE.WAIVER"
+          ],
+          "missing_at_k": [
+            "MILES.HISTORY"
+          ]
+        },
+        {
+          "case_id": "AIRO-020",
+          "language": "pt",
+          "route": "REFUSE_UNAUTHORIZED",
+          "gold_retrieval": [
+            "FEE.MX"
+          ],
+          "top_k": [
+            "FEE.MX",
+            "CATALOG.IDENTITY",
+            "FEE.AR",
+            "UNKNOWN.COST",
+            "FEE.CO"
+          ],
+          "missing_at_k": []
+        },
+        {
+          "case_id": "AIRO-021",
+          "language": "pt",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "BENEFIT.HORIZON"
+          ],
+          "top_k": [
+            "FEE.AR",
+            "CATALOG.IDENTITY",
+            "RATE.AR",
+            "FEE.MX",
+            "UNKNOWN.COST"
+          ],
+          "missing_at_k": [
+            "BENEFIT.HORIZON"
+          ]
+        },
+        {
+          "case_id": "AIRO-022",
+          "language": "pt",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "RATE.AR",
+            "UNKNOWN.COST"
+          ],
+          "top_k": [
+            "RATE.AR",
+            "UNKNOWN.COST",
+            "FEE.AR",
+            "CATALOG.IDENTITY",
+            "BENEFIT.CAMPUS"
+          ],
+          "missing_at_k": []
+        }
+      ]
+    },
+    "e5": {
+      "model": "intfloat/multilingual-e5-small",
+      "metrics": {
+        "all": {
+          "n": 18,
+          "hit_at_1": 0.6111,
+          "recall_at_k": 0.8426,
+          "mrr": 0.7394
+        },
+        "by_language": {
+          "es": {
+            "n": 9,
+            "hit_at_1": 0.7778,
+            "recall_at_k": 0.963,
+            "mrr": 0.8889
+          },
+          "pt": {
+            "n": 9,
+            "hit_at_1": 0.4444,
+            "recall_at_k": 0.7222,
+            "mrr": 0.5898
+          }
+        },
+        "by_route": {
+          "ANSWER_FACT": {
+            "n": 13,
+            "hit_at_1": 0.6154,
+            "recall_at_k": 0.8077,
+            "mrr": 0.7353
+          },
+          "CLARIFY": {
+            "n": 1,
+            "hit_at_1": 1.0,
+            "recall_at_k": 1.0,
+            "mrr": 1.0
+          },
+          "HANDOFF": {
+            "n": 3,
+            "hit_at_1": 0.6667,
+            "recall_at_k": 0.8889,
+            "mrr": 0.8333
+          },
+          "REFUSE_UNAUTHORIZED": {
+            "n": 1,
+            "hit_at_1": 0.0,
+            "recall_at_k": 1.0,
+            "mrr": 0.25
+          }
+        }
+      },
+      "cases": [
+        {
+          "case_id": "AIRO-001",
+          "language": "es",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "BENEFIT.CAMPUS"
+          ],
+          "top_k": [
+            "FEE.WAIVER",
+            "BENEFIT.CAMPUS",
+            "FEE.CO",
+            "RATE.CO",
+            "RATE.MX"
+          ],
+          "missing_at_k": []
+        },
+        {
+          "case_id": "AIRO-002",
+          "language": "es",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "FEE.CO",
+            "FEE.WAIVER"
+          ],
+          "top_k": [
+            "FEE.CO",
+            "FEE.WAIVER",
+            "BENEFIT.REWARDS",
+            "MILES.HISTORY",
+            "FEE.AR"
+          ],
+          "missing_at_k": []
+        },
+        {
+          "case_id": "AIRO-003",
+          "language": "es",
+          "route": "HANDOFF",
+          "gold_retrieval": [
+            "BENEFIT.SUMMIT",
+            "TRAVEL.RULES",
+            "UNKNOWN.TRAVEL"
+          ],
+          "top_k": [
+            "BENEFIT.SUMMIT",
+            "TRAVEL.RULES",
+            "BENEFIT.REWARDS",
+            "FEE.WAIVER",
+            "CATALOG.IDENTITY"
+          ],
+          "missing_at_k": [
+            "UNKNOWN.TRAVEL"
+          ]
+        },
+        {
+          "case_id": "AIRO-005",
+          "language": "es",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "BENEFIT.HORIZON"
+          ],
+          "top_k": [
+            "FEE.WAIVER",
+            "BENEFIT.HORIZON",
+            "RATE.MX",
+            "BENEFIT.REWARDS",
+            "FEE.MX"
+          ],
+          "missing_at_k": []
+        },
+        {
+          "case_id": "AIRO-006",
+          "language": "es",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "RATE.MX"
+          ],
+          "top_k": [
+            "RATE.MX",
+            "MILES.HISTORY",
+            "UNKNOWN.COST",
+            "FEE.AR_REVIEW",
+            "RATE.AR"
+          ],
+          "missing_at_k": []
+        },
+        {
+          "case_id": "AIRO-007",
+          "language": "es",
+          "route": "CLARIFY",
+          "gold_retrieval": [
+            "BENEFIT.REWARDS",
+            "BENEFIT.SUMMIT",
+            "TRAVEL.RULES"
+          ],
+          "top_k": [
+            "BENEFIT.REWARDS",
+            "BENEFIT.SUMMIT",
+            "TRAVEL.RULES",
+            "FEE.MX",
+            "CATALOG.IDENTITY"
+          ],
+          "missing_at_k": []
+        },
+        {
+          "case_id": "AIRO-009",
+          "language": "es",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "FEE.AR",
+            "FEE.AR_REVIEW"
+          ],
+          "top_k": [
+            "FEE.AR",
+            "FEE.AR_REVIEW",
+            "BENEFIT.SUMMIT",
+            "FEE.MX",
+            "FEE.CO"
+          ],
+          "missing_at_k": []
+        },
+        {
+          "case_id": "AIRO-010",
+          "language": "es",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "BENEFIT.SUMMIT",
+            "MILES.HISTORY"
+          ],
+          "top_k": [
+            "MILES.HISTORY",
+            "BENEFIT.SUMMIT",
+            "FEE.AR",
+            "FEE.AR_REVIEW",
+            "BENEFIT.REWARDS"
+          ],
+          "missing_at_k": []
+        },
+        {
+          "case_id": "AIRO-011",
+          "language": "es",
+          "route": "HANDOFF",
+          "gold_retrieval": [
+            "UNKNOWN.COST"
+          ],
+          "top_k": [
+            "UNKNOWN.COST",
+            "BENEFIT.REWARDS",
+            "FEE.WAIVER",
+            "FEE.AR",
+            "CATALOG.IDENTITY"
+          ],
+          "missing_at_k": []
+        },
+        {
+          "case_id": "AIRO-013",
+          "language": "pt",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "BENEFIT.REWARDS",
+            "MILES.HISTORY"
+          ],
+          "top_k": [
+            "BENEFIT.REWARDS",
+            "FEE.CO",
+            "FEE.WAIVER",
+            "CATALOG.IDENTITY",
+            "RATE.CO"
+          ],
+          "missing_at_k": [
+            "MILES.HISTORY"
+          ]
+        },
+        {
+          "case_id": "AIRO-014",
+          "language": "pt",
+          "route": "HANDOFF",
+          "gold_retrieval": [
+            "BENEFIT.CAMPUS"
+          ],
+          "top_k": [
+            "CATALOG.IDENTITY",
+            "BENEFIT.CAMPUS",
+            "FEE.WAIVER",
+            "FEE.CO",
+            "UNKNOWN.COST"
+          ],
+          "missing_at_k": []
+        },
+        {
+          "case_id": "AIRO-015",
+          "language": "pt",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "BENEFIT.SUMMIT",
+            "TRAVEL.RULES"
+          ],
+          "top_k": [
+            "CATALOG.IDENTITY",
+            "FEE.CO",
+            "TRAVEL.RULES",
+            "FEE.AR",
+            "BENEFIT.SUMMIT"
+          ],
+          "missing_at_k": []
+        },
+        {
+          "case_id": "AIRO-016",
+          "language": "pt",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "UNKNOWN.COST"
+          ],
+          "top_k": [
+            "FEE.CO",
+            "CATALOG.IDENTITY",
+            "FEE.AR",
+            "MILES.HISTORY",
+            "FEE.WAIVER"
+          ],
+          "missing_at_k": [
+            "UNKNOWN.COST"
+          ]
+        },
+        {
+          "case_id": "AIRO-017",
+          "language": "pt",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "FEE.MX",
+            "FEE.WAIVER"
+          ],
+          "top_k": [
+            "FEE.WAIVER",
+            "FEE.MX",
+            "MILES.HISTORY",
+            "UNKNOWN.COST",
+            "RATE.MX"
+          ],
+          "missing_at_k": []
+        },
+        {
+          "case_id": "AIRO-018",
+          "language": "pt",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "MILES.HISTORY"
+          ],
+          "top_k": [
+            "FEE.MX",
+            "FEE.WAIVER",
+            "CATALOG.IDENTITY",
+            "RATE.MX",
+            "UNKNOWN.COST"
+          ],
+          "missing_at_k": [
+            "MILES.HISTORY"
+          ]
+        },
+        {
+          "case_id": "AIRO-020",
+          "language": "pt",
+          "route": "REFUSE_UNAUTHORIZED",
+          "gold_retrieval": [
+            "FEE.MX"
+          ],
+          "top_k": [
+            "FEE.WAIVER",
+            "CATALOG.IDENTITY",
+            "MILES.HISTORY",
+            "FEE.MX",
+            "UNKNOWN.COST"
+          ],
+          "missing_at_k": []
+        },
+        {
+          "case_id": "AIRO-021",
+          "language": "pt",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "BENEFIT.HORIZON"
+          ],
+          "top_k": [
+            "BENEFIT.HORIZON",
+            "FEE.WAIVER",
+            "FEE.AR",
+            "BENEFIT.REWARDS",
+            "RATE.AR"
+          ],
+          "missing_at_k": []
+        },
+        {
+          "case_id": "AIRO-022",
+          "language": "pt",
+          "route": "ANSWER_FACT",
+          "gold_retrieval": [
+            "RATE.AR",
+            "UNKNOWN.COST"
+          ],
+          "top_k": [
+            "RATE.AR",
+            "UNKNOWN.COST",
+            "RATE.MX",
+            "MILES.HISTORY",
+            "FEE.AR_REVIEW"
+          ],
+          "missing_at_k": []
+        }
+      ]
+    }
+  }
+}

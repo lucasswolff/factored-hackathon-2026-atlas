@@ -144,6 +144,92 @@ class ConversationTests(unittest.TestCase):
         self.assertNotIn("Horizon", result["answer"])
         self.assertNotIn("Campus", result["answer"])
 
+    def test_first_partial_cycle_fee_is_waived_without_model_polarity_error(self):
+        for language, question in (
+            ("pt", "Se a Rewards for aberta no meio do ciclo, a primeira parcela de MXN 150 já vem mesmo sem eu gastar os MXN 15.000?"),
+            ("es", "Si abro Rewards a mitad del primer ciclo parcial, ¿cobran la cuota?"),
+        ):
+            with self.subTest(language=language), patch("advisor.service._generate") as model:
+                result = respond(Conversation.start(language, "México", selected_card="Rewards"), question)
+            model.assert_not_called()
+            self.assertEqual(result["route"], "ANSWER_FACT")
+            self.assertEqual(result["citations"], ["FEE.WAIVER"])
+            self.assertIn("isenta" if language == "pt" else "exonera", result["answer"])
+        with patch("advisor.service._generate", return_value={
+            "answer": "Depende do saldo e da data de pagamento.", "citations": ["RATE.MX"]}) as model:
+            respond(Conversation.start("pt", "México", selected_card="Rewards"),
+                    "Quanto pago de juros no primeiro ciclo parcial?")
+        model.assert_called_once()
+
+    def test_refund_fee_question_needs_card_and_final_cycle_evidence(self):
+        question = ("Si este ciclo compré por COP 3.100.000 y me reintegran COP 200.000 "
+                    "antes de cerrarlo, ¿me toca la cuota de manejo?")
+        with patch("advisor.service._generate") as model:
+            unclear = respond(Conversation.start("es", "Colombia"), question)
+            selected = respond(Conversation.start("es", "Colombia", selected_card="Rewards"), question)
+        model.assert_not_called()
+        self.assertEqual(unclear["route"], "CLARIFY")
+        self.assertIn("Rewards o Summit", unclear["answer"])
+        self.assertEqual(selected["route"], "ANSWER_FACT")
+        self.assertIn("al cierre de un ciclo completo", selected["answer"])
+        self.assertIn("Aún no puedo confirmar", selected["answer"])
+
+    def test_guest_visit_uses_same_allowance(self):
+        question = "No Summit são oito acessos por ano. Quando levo uma pessoa comigo, ela usa um dos meus oito ou entra por fora?"
+        with patch("advisor.service._generate") as model:
+            result = respond(Conversation.start("pt", "Colombia", selected_card="Summit"), question)
+        model.assert_not_called()
+        self.assertEqual(result["route"], "ANSWER_FACT")
+        self.assertIn("mesma cota", result["answer"])
+        self.assertEqual(result["citations"], ["BENEFIT.SUMMIT", "TRAVEL.RULES"])
+
+    def test_optional_precheck_information_does_not_start_application(self):
+        chat = Conversation.start("es", "Argentina", selected_card="Horizon")
+        chat.demo_alias = "P06"
+        with patch("advisor.service._generate") as model:
+            info = respond(chat, "¿Podría solicitar Horizon directamente o es obligatorio hacer primero la evaluación previa?")
+            request = respond(chat, "Quiero solicitar Horizon sin evaluación previa")
+        model.assert_not_called()
+        self.assertEqual(info["route"], "ANSWER_FACT")
+        self.assertIn("opcional", info["answer"])
+        self.assertEqual(request["route"], "SKIP_PRECHECK")
+
+    def test_specific_coverage_limit_and_student_approval_stay_outside_model(self):
+        cases = (
+            ("es", "Colombia", "Summit",
+             "Tengo un tratamiento cardíaco programado. Si pago el pasaje con Summit, ¿me reembolsan esa atención médica?",
+             "No puedo confirmar cobertura"),
+            ("es", "México", "Rewards",
+             "Dime qué límite de crédito me asignarían en Rewards; con el clic de la publicidad deben ubicarme.",
+             "Un clic de campaña no te identifica"),
+            ("pt", "Colombia", None,
+             "Estou fazendo faculdade. Pode marcar Campus como aprovada para mim?",
+             "não comprova matrícula"),
+            ("pt", "México", None,
+             "Qual câmbio e spread entram na fatura mexicana se eu comprar em euros hoje?",
+             "não determina o câmbio de cobrança"),
+        )
+        with patch("advisor.service._generate") as model:
+            for language, country, card, question, expected in cases:
+                with self.subTest(question=question):
+                    result = respond(Conversation.start(language, country, selected_card=card), question)
+                    self.assertEqual(result["route"], "SERVICE_BOUNDARY")
+                    self.assertIn(expected, result["answer"])
+            model.assert_not_called()
+
+    def test_unknown_card_lounge_balance_and_argentina_tna_are_grounded(self):
+        with patch("advisor.service._generate") as model:
+            lounge = respond(Conversation.start("es", "México"),
+                "Voy con dos acompañantes al lounge. ¿Cuántas entradas gratis nos quedarían después? No recuerdo la tarjeta.")
+            rate = respond(Conversation.start("pt", "Argentina"),
+                "Li 70 % TNA para compras. Isso já inclui todos os encargos, tipo CFT?")
+        model.assert_not_called()
+        self.assertEqual(lounge["route"], "CLARIFY")
+        self.assertIn("Rewards comienza con 2", lounge["answer"])
+        self.assertIn("cuántas visitas se usaron", lounge["answer"])
+        self.assertEqual(rate["citations"], ["RATE.AR", "UNKNOWN.COST"])
+        self.assertIn("não inclui capitalização", rate["answer"])
+
     def test_selected_card_benefits_and_lounge_question_does_not_compare_cards(self):
         chat = Conversation.start("pt", "México", selected_card="Summit")
         with patch("advisor.service._generate", return_value={

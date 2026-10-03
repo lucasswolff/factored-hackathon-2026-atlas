@@ -31,7 +31,7 @@ from .chat_flow import (application_choice, application_question, choice, expire
                         wants_information)
 from .data_access import DemoDirectory
 from .policy import CARDS, OFFER_VERSION
-from .service import CAMPAIGNS, Conversation, respond, wants_human
+from .service import CAMPAIGNS, FACT_VERSION, Conversation, respond, wants_human
 from .session import (grant_precheck_consent, grant_profile_permission,
                       profile_summary, recommendation_for_session, run_precheck,
                       select_demo_persona, sign_out)
@@ -319,9 +319,32 @@ class WebApp:
                                f"Referencia {record['handoff_id']}; estado PENDING_REVIEW. "
                                "Aún no se asignó a nadie."),
                     "citations": [], "route": "HANDOFF_RECORDED", "card": record["card"]}
+        profile = profile_summary(chat, self.directory)
+        checks = [{"card": card, "status": check["status"],
+                   "reasons": check["reasons"], "missing_data": check.get("missing_data", []),
+                   "policy_version": check["policy_version"], "consent_at": check["consent_at"]}
+                  for card, check in state.prechecks.items()]
+        application = state.application_record
+        packet = {
+            "request": (f"Customer requested a person to review {chat.selected_card}"
+                        if chat.selected_card else "Customer requested a person to review card options"),
+            "verified_facts": {"fixture": chat.demo_alias, "source": profile["source"],
+                               "country": profile["country"], "segment": profile["segment"],
+                               "has_current_credit_card": profile["has_current_credit_card"]},
+            "actions_taken": {"prechecks": checks,
+                              "application": ({"reference": application["application_id"],
+                                               "status": application["status"]} if application else None)},
+            "evidence": {"offer_version": OFFER_VERSION, "fact_version": FACT_VERSION,
+                         "campaign_id": chat.campaign_id, "entry_kind": chat.entry_kind},
+            "open_questions": (["Verify missing profile fields before eligibility review"]
+                               if any(check["missing_data"] for check in checks) else []) +
+                              (["Verify current student enrollment"] if chat.selected_card == "Campus" else []) +
+                              ["Review the customer's request and decide the next step"],
+        }
         draft = {"conversation_id": state.conversation_id, "customer_alias": chat.demo_alias,
                  "country": chat.country, "language": chat.language, "card": chat.selected_card,
-                 "reason": "CUSTOMER_REQUEST", "offer_version": OFFER_VERSION}
+                 "reason": "CUSTOMER_REQUEST", "offer_version": OFFER_VERSION,
+                 "packet": packet}
         try:
             record = self.applications.create_handoff_and_verify(draft, utc_now())
         except ApplicationStorageError:
@@ -405,6 +428,8 @@ class WebApp:
             if card:
                 chat.selected_card = card
                 state.pending_action = None
+                if action.get("skip_precheck") and action["apply_after"]:
+                    return self._ask_application(state, chat, card)
                 if action["apply_after"] and card in state.prechecks:
                     return self._ask_application(state, chat, card)
                 return self._ask_precheck(state, chat, card, apply_after=action["apply_after"])
@@ -471,6 +496,7 @@ class WebApp:
             result = run_precheck(chat, self.directory, card)
             policy = result["policy"]
             state.prechecks[card] = {"status": policy.status, "reasons": list(policy.reasons),
+                                     "missing_data": list(policy.missing_data),
                                      "policy_version": policy.policy_version,
                                      "consent_at": state.precheck_consent_at[card]}
             state.application_draft = None
@@ -586,6 +612,7 @@ class WebApp:
             policy = result["policy"]
             state.prechecks[policy.card] = {"status": policy.status,
                                             "reasons": list(policy.reasons),
+                                            "missing_data": list(policy.missing_data),
                                             "policy_version": policy.policy_version,
                                             "consent_at": state.precheck_consent_at.get(policy.card)}
             state.application_draft = None
@@ -671,6 +698,7 @@ class WebApp:
                 if result["route"] == "ASK_CARD":
                     state.pending_action = pending("choose_card", None,
                                                    apply_after=result.get("wants_application", False))
+                    state.pending_action["skip_precheck"] = result.get("skip_precheck", False)
                 elif result["route"] == "ASK_APPLICATION_INTENT":
                     state.pending_action = pending("application_intent_clarify", result["card"])
                 elif result["route"] == "ASK_PRECHECK_CONSENT":
@@ -680,6 +708,8 @@ class WebApp:
                     else:
                         result = self._ask_precheck(state, chat, card,
                                                     apply_after=result.get("wants_application", False))
+                elif result["route"] == "SKIP_PRECHECK":
+                    result = self._ask_application(state, chat, result["card"])
             if state.application_draft and chat.selected_card != state.application_draft["card"]:
                 state.application_draft = None
             if result["route"] == "ANSWER_FACT":

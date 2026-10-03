@@ -35,6 +35,10 @@ advisor then asks separately whether to record a mock application for human
 review. A typed yes to that second question writes one local
 mock application with `PENDING_REVIEW`, reads it back, and displays the verified
 reference. Asking about applying or running a precheck does not write a record.
+Asking whether a precheck is mandatory receives an informational answer. An
+explicit request to apply without a precheck goes straight to the separate
+mock-application confirmation; it does not run a policy check or write a record
+until that confirmation is accepted and verified.
 Vague replies do not authorize an action, and pending confirmations expire after
 ten minutes. The browser no longer needs precheck or application buttons.
 Requests that name two cards ask the customer to choose one before a precheck or
@@ -53,14 +57,18 @@ application can be recorded in a conversation; another request needs a new
 conversation. Model-generated claims that an application was sent or a person
 was assigned are rejected before display. A customer can request a person in
 chat. The server records that request locally with read-back, but does not
-assign or contact an employee.
+assign or contact an employee. A verified handoff stores a compact reviewer
+packet: selected fixture and card, authorized profile context, consented
+precheck outcomes and policy version, any verified mock application reference,
+offer/fact versions, and open review questions. It does not copy chat text or
+raw source rows into the review queue.
 Retrying the same confirmation reuses the record. The SQLite store lives at
 `advisor/.local/mock_applications.sqlite` (ignored by Git and mode 0600); it
 contains fixture aliases and action metadata, not raw customer records or
 financial fields. It never changes the supplied `PRODUCTS` table. No credit
 approval or actual application is sent to a bank.
 The local `/review` page displays confirmed mock applications and customer
-requests for a person, including precheck reason summaries. It is accessible
+requests for a person, including precheck reason summaries and handoff packets. It is accessible
 on the local demo server without reviewer authentication and contains fixture
 aliases and synthetic workflow records only. Existing local SQLite files are
 migrated automatically; older records may lack reason summaries. No reviewer

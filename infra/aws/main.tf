@@ -24,12 +24,8 @@ provider "aws" {
 }
 
 locals {
-  advisor_files = toset([
-    "__init__.py", "applications.py", "aws_state.py", "chat_flow.py",
-    "data_access.py", "lambda_app.py", "policy.py", "service.py",
-    "session.py", "synthetic_data.py", "web.py", "ui/app.css",
-    "ui/app.js", "ui/index.html", "ui/review.html", "ui/review.js"
-  ])
+  lambda_files        = toset(split("\n", trimspace(file("${path.module}/lambda_files.txt"))))
+  github_main_subject = "repo:lucasswolff@99693858/factored-hackathon-2026-atlas@1401760758:ref:refs/heads/main"
 }
 
 # This allowlist prevents local CSVs, .env files, tests, and SQLite files from
@@ -39,17 +35,62 @@ data "archive_file" "advisor" {
   output_path = "${path.module}/advisor.zip"
 
   dynamic "source" {
-    for_each = local.advisor_files
+    for_each = local.lambda_files
     content {
-      content  = file("${path.module}/../../advisor/${source.value}")
-      filename = "advisor/${source.value}"
+      content  = file("${path.module}/../../${source.value}")
+      filename = source.value
     }
   }
+}
 
-  source {
-    content  = file("${path.module}/../../plan/conversation_data/source_pack.md")
-    filename = "plan/conversation_data/source_pack.md"
+# GitHub Actions receives short-lived credentials only for this repository's
+# immutable main-branch OIDC subject. It can update the advisor Lambda code,
+# but cannot read runtime secrets or alter IAM, DynamoDB, or function settings.
+resource "aws_iam_openid_connect_provider" "github" {
+  url            = "https://token.actions.githubusercontent.com"
+  client_id_list = ["sts.amazonaws.com"]
+}
+
+data "aws_iam_policy_document" "github_deploy_assume" {
+  statement {
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+    principals {
+      type        = "Federated"
+      identifiers = [aws_iam_openid_connect_provider.github.arn]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:sub"
+      values   = [local.github_main_subject]
+    }
   }
+}
+
+resource "aws_iam_role" "github_deploy" {
+  name               = "factored-advisor-github-main-deploy"
+  assume_role_policy = data.aws_iam_policy_document.github_deploy_assume.json
+}
+
+data "aws_iam_policy_document" "github_deploy" {
+  statement {
+    actions = [
+      "lambda:UpdateFunctionCode",
+      "lambda:GetFunctionConfiguration",
+      "lambda:GetFunctionUrlConfig",
+    ]
+    resources = [aws_lambda_function.advisor.arn]
+  }
+}
+
+resource "aws_iam_role_policy" "github_deploy" {
+  name   = "factored-advisor-github-main-deploy"
+  role   = aws_iam_role.github_deploy.id
+  policy = data.aws_iam_policy_document.github_deploy.json
 }
 
 resource "aws_dynamodb_table" "advisor" {
@@ -206,6 +247,12 @@ resource "aws_lambda_function" "advisor" {
   }
 
   depends_on = [aws_iam_role_policy.advisor, aws_cloudwatch_log_group.advisor]
+
+  # GitHub Actions deploys code from protected main. Terraform manages the
+  # function configuration and initial package without replacing CI releases.
+  lifecycle {
+    ignore_changes = [filename, source_code_hash]
+  }
 }
 
 resource "aws_lambda_function_url" "advisor" {

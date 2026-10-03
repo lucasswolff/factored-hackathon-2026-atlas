@@ -58,6 +58,18 @@ class CustomerPolicyTests(unittest.TestCase):
             select_demo_persona(chat, self.directory, "P01")
         self.assertIsNone(chat.demo_alias)
 
+    def test_missing_score_explains_indeterminate_precheck(self):
+        chat = Conversation.start("es", "Argentina", selected_card="Summit")
+        select_demo_persona(chat, self.directory, "P06")
+        grant_profile_permission(chat)
+        grant_precheck_consent(chat, self.directory, "Summit")
+        result = run_precheck(chat, self.directory, "Summit")
+        self.assertEqual(result["policy"].status, "REVIEW_REQUIRED")
+        self.assertEqual(result["policy"].missing_data, ("credit_score",))
+        self.assertIn("Falta en el perfil: puntuación", result["answer"])
+        self.assertIn("no hay preaprobación", result["answer"])
+        sign_out(chat, self.directory)
+
     def test_directory_startup_does_not_read_score_or_income(self):
         with tempfile.TemporaryDirectory() as folder:
             cache_path = Path(folder) / "personas.json"

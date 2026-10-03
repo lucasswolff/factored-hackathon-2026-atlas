@@ -9,9 +9,12 @@ bilingual answer evaluation against a baseline remains open; the existing
 AI-authored challenge is development evidence only. Submission slides and
 video are still pending.
 
-**Update, 2026-10-03:** The browser service now stores a bounded, structured
-packet for a customer-requested human review; the queue still assigns no
-employee. A new [AI-only bilingual comparison](../plan/conversation_data/ai_review_2026_10_03_comparison.md)
+**Update, 2026-10-03:** The browser service now offers review for unanswered
+questions, waits for confirmation, and stores the bounded conversation thread,
+structured review packet, and a mock agent assignment from an eligible roster
+snapshot. The protected queue shows the packet and assignment. This does not
+verify live employee availability or deliver a message to an employee. A new
+[AI-only bilingual comparison](../plan/conversation_data/ai_review_2026_10_03_comparison.md)
 used 24 frozen AI-authored cases, separately AI-labeled before Claude answered,
 and a separate OpenAI answer judge. It found material guest-quota and fee-answer
 errors. The advisor now has deterministic answers for the high-impact
@@ -22,7 +25,7 @@ hosted-journey evaluation. The [answer-safety follow-up](answer_safety_fixes_202
 records the replay, service boundaries, and remaining limitations. Submission
 slides and video remain pending.
 
-**Current priority (2026-10-01):** test the [browser demo](../advisor/README.md) against the [conversation contract](../plan/conversation_contract.md). The [campaign mapping](../plan/campaign_cards.md), [four-card demo catalog](card_catalog_draft.md), and [synthetic policy](../plan/demo_credit_policy.md) are drafted. The UI exposes campaign/direct entry, a “Choose a demo customer” screen, Spanish/Portuguese product chat, suggestions, chat-consented prechecks, and chat-confirmed local mock applications with verified `PENDING_REVIEW` read-back. The hosted judge flow is public and uses separate fictional fixtures; the review queue requires a code. Selecting a fixture permits profile use but is not authentication. Policy v2 sends low-score Student Campus and near-threshold Horizon cases to human review. No employee is assigned or contacted. Independent bilingual judgments, real authentication, and an actual human-service integration remain open. The user chose conversation quality over campaign-click prediction. The earlier synthetic prototype was removed.
+**Current priority:** evaluate the [browser demo](../advisor/README.md) against the [conversation contract](../plan/conversation_contract.md) with independent bilingual judgments and prepare submission evidence. The [campaign mapping](../plan/campaign_cards.md), [four-card demo catalog](card_catalog_draft.md), and [synthetic policy](../plan/demo_credit_policy.md) are drafted. The UI exposes campaign/direct entry, a “Choose a demo customer” screen, Spanish/Portuguese product chat, suggestions, chat-consented prechecks, chat-confirmed mock applications with verified `PENDING_REVIEW` read-back, and confirmed handoffs with a mock roster assignment. The hosted judge flow is public and uses separate fictional fixtures; the review queue requires a code. Selecting a fixture permits profile use but is not authentication. Independent bilingual judgments, real authentication, and an actual employee-service integration remain open. The user chose conversation quality over campaign-click prediction. The earlier synthetic prototype was removed.
 
 ## Scope and evidence
 
@@ -30,16 +33,16 @@ The MVP is a **Credit-Product Info & Eligibility Support** journey with two star
 
 The [marketing feasibility audit](credit_marketing_feasibility.md) reports 1,746,801 sends and 97,793 clicks in the supplied synthetic dataset. Those figures establish campaign engagement only. Historical click-to-chat attribution is unverified, and `had_conversion` is not a verified product contract. Future offer terms, policy, conversations, and mock applications will be **team-created**, clearly separated from supplied records.
 
-**Agreed data-backed demo:** Use selected supplied campaign, customer, product, and agent rows, focusing on customers without a credit card. Map selected generic `Tarjeta Crédito` campaign rows to four clearly team-created named offers; a new UI click creates a new conversation and is not recorded as a historical campaign send click. All three customer countries—Colombia, México, and Argentina—are in scope, so income remains in local currency and recommendation bands/offer terms must be country-specific. Use `CUSTOMERS` for permitted profile inputs, `PRODUCTS` to avoid duplicate offers, and `SERVICE_AGENTS` for a language- and specialty-matched handoff. Offer terms, eligibility rules, new chat, and application records remain team-created.
+**Agreed data-backed demo:** The local mode uses selected supplied campaign, customer, product, and agent rows, focusing on customers without a credit card; the public hosted mode uses separate fictional customer fixtures and a private, filtered agent-roster snapshot. Map selected generic `Tarjeta Crédito` campaign rows to four clearly team-created named offers; a new UI click creates a new conversation and is not recorded as a historical campaign send click. All three customer countries—Colombia, México, and Argentina—are in scope, so income remains in local currency and recommendation bands/offer terms are country-specific. Local `CUSTOMERS` fields support permitted profile inputs, `PRODUCTS` helps avoid duplicate offers, and `SERVICE_AGENTS` supplies a language- and credit-specialty-matched mock handoff. Offer terms, eligibility rules, new chat, and application records are team-created.
 
-The historical data supports a real backtest of **recorded campaign engagement**, separate from the new UI click. It does not support a historical approval or contract backtest: no approved policy, decision labels, or point-in-time customer feature history is supplied. Replaying historical clicked sends through a new synthetic policy is a retrospective simulation, which must be labeled as such. The judge's interactive demo can use real supplied rows as its customer/campaign context while accepting unscripted chat input; unsupported requests need safe clarification or handoff. The text-only advisor now uses an LLM for public free-form questions; versioned offer facts, consent, recommendation/precheck results, and mock actions remain outside the model. Transcript translations are a tone reference, not offer knowledge.
+The historical data supports a real backtest of **recorded campaign engagement**, separate from the new UI click. It does not support a historical approval or contract backtest: no approved policy, decision labels, or point-in-time customer feature history is supplied. Replaying historical clicked sends through a new synthetic policy is a retrospective simulation, which must be labeled as such. The public judge demo accepts unscripted chat with fictional customer fixtures and a team-created card mapping; unsupported requests need safe clarification or handoff. The text-only advisor uses an LLM for public free-form questions; versioned offer facts, consent, recommendation/precheck results, and mock actions remain outside the model. Transcript translations are a tone reference, not offer knowledge.
 
 ## Next steps
 
-The [release and evaluation plan](release_readiness.md) prioritizes a safely
-deployed judge prototype, held-out evidence, and a credible scaling path based
-on the organizer briefs. Public hosting must wait for the stated security and
-data-boundary release gates; a deployed prototype is not a live banking service.
+The [release and evaluation plan](release_readiness.md) prioritizes held-out
+evidence, submission materials, and a credible scaling path based on the
+organizer briefs. The public judge prototype is deployed with fictional
+fixtures and a protected reviewer queue; it is not a live banking service.
 
 1. **Review more unscripted journeys.** Capture exact turns, persona, entry path, language, expected behavior, and observed behavior in [conversation review notes](../plan/conversation_review_notes.md). P01/P04/P02 development cases now have fixes and regression tests; keep looking for new failure patterns.
 2. **Evaluate answer quality independently.** Obtain new Spanish/Portuguese cases by scenario family, freeze them before tuning, and have a bilingual reviewer judge relevance, grounding, and safe abstention. The existing keyword/E5 comparison and AI-authored cases are development diagnostics only, not held-out performance.

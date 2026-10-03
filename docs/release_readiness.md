@@ -67,19 +67,23 @@ Release gate: a judge can open the URL and finish the core journeys; a visitor
 cannot view another fixture's active conversation, the review queue, or any
 source record; a model or
 storage failure produces no false success claim. The judge-facing app must
-still state outside the chat that offers, policy, and applications are
-simulated. Do not connect actual lending, employee assignment, or bank writes.
+   still state outside the chat that offers, policy, and applications are
+   simulated. Do not connect actual lending, live employee assignment, or bank writes.
 
 ## Priority 1 — prove the system works
 
-1. **Review the operational handoff.** A customer-requested handoff now stores
-   a bounded packet containing the selected card, permitted profile context,
-   offer/policy versions, consented precheck results, verified application
-   outcome, and open questions. The protected hosted reviewer can inspect it.
-   The request summary is generic rather than a raw chat excerpt;
-   unsupported requests and policy-triggered review do not yet create a
-   handoff automatically. No employee is assigned or contacted. Validate the
-   packet with final judge cases and describe it as queued review.
+1. **Review the operational handoff.** For an unanswered question, the advisor
+   offers a human review and waits for customer confirmation. A confirmed
+   handoff stores the same bounded conversation thread, selected card,
+   permitted profile context, offer/policy versions, consented precheck results,
+   verified application outcome, and open questions. It records a mock agent
+   assignment selected from a filtered roster snapshot: active Digital/Hybrid
+   credit specialists matching the chat language, with the same country
+   preferred when available. The protected hosted reviewer can inspect the
+   packet and assignment; the bot pauses that conversation. Roster status does
+   not verify live availability, no employee is contacted, and there is no
+   employee reply interface. Validate this flow with final judge cases and
+   describe it as queued review.
 2. **Freeze a held-out workload.** Use new Spanish and Portuguese cases covering
    normal, ambiguous, decline, missing data, borderline, cross-customer,
    expired session, prompt injection, and model/storage failure. Keep tuning

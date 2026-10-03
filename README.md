@@ -10,13 +10,18 @@ The [AWS deployment guide](infra/aws/README.md#automatic-code-deployment-from-pr
 describes the pull-request test and automatic deployment triggered by a push
 to protected `main`.
 
-The planned project is an AI-assisted **Credit-Product Info & Eligibility Support** workflow. A visitor clicks a campaign card tied to a named offer or opens the advisor directly, then chooses an allowlisted demo customer before asking questions in Spanish or Portuguese. That choice enables profile-based suggestions; it is not real authentication. A card-specific precheck needs separate chat consent. An anonymous income entry does not produce a suggestion. After a separate chat confirmation, the browser can record a **mock application** for human review. Verified human handoff remains future work. The advisor does not approve credit or create a real product.
+The deployed project is an AI-assisted **Credit-Product Info & Eligibility Support** demo. A visitor clicks a campaign card tied to a named offer or opens the advisor directly, then chooses a fictional demo customer before asking questions in Spanish or Portuguese. That choice enables profile-based suggestions; it is not real authentication. A card-specific precheck needs separate chat consent. An anonymous income entry does not produce a suggestion. After a separate chat confirmation, the browser can record a **mock application** with verified `PENDING_REVIEW` read-back. For an unanswered question, the advisor offers human review and waits for confirmation. It then stores the same bounded conversation thread, a review packet, and a mock roster assignment for the protected reviewer queue. The advisor does not approve credit or create a real product. The roster is a snapshot, so it does not establish live agent availability or deliver a message to an employee.
+
+## Hosted architecture
+
+![Architecture of the hosted advisor: visitor entry and fixture selection lead to a Lambda-hosted conversation service; controlled routing uses public facts, optional Claude answers, deterministic profile and precheck tools, and verified DynamoDB actions; a protected reviewer reads confirmed applications and handoffs.](docs/architecture.svg)
+
+The [architecture diagram](docs/architecture.svg) shows the deployed AWS path. The browser uses an HTTPS Lambda Function URL. A server-bound session holds the chosen fictional fixture and active card. The service handles consent, recommendations, prechecks, application confirmation, and handoff confirmation; Claude only answers public product questions using a versioned fact sheet. DynamoDB stores expiring sessions, the shared model-attempt counter, verified mock applications and handoffs, and the filtered agent roster. A confirmed handoff includes the conversation thread and pauses the bot in that chat. The protected `/review` page can inspect it, but there is no employee reply interface. The local browser mode uses organizer-data demo personas and SQLite mock actions; it is distinct from the public fictional-fixture deployment.
 
 **Current priority:** evaluate Spanish/Portuguese product answers and prepare submission evidence. The [AWS deployment](infra/aws/README.md) has passed a [judge rehearsal](docs/judge_rehearsal_2026-10-02.md); check its live status before sharing the URL. The local browser advisor remains available with `python3 -m advisor.web` at `http://127.0.0.1:8765/`. Its public-answer default is Sonnet 5 at low effort after a [development latency comparison](plan/conversation_data/latency_model_comparison.md); the deterministic customer and precheck flow stays local. Read the [project plan](docs/project_plan.md), [MVP requirements](docs/mvp_requirements.md), and [AGENTS.md](AGENTS.md) before extending scope.
 
 The [release and evaluation plan](docs/release_readiness.md) maps the organizer
-requirements to the security, deployment, measurement, and submission work
-remaining before this local demo becomes a judge-accessible prototype.
+requirements to the remaining evaluation, measurement, and submission work.
 
 - `docs/factored_docs/`: organizer brief and data dictionaries.
 - `docs/mvp_requirements.md`: workflow and demo acceptance criteria.
@@ -33,4 +38,4 @@ remaining before this local demo becomes a judge-accessible prototype.
 
 A/B testing is a later enhancement, after the core conversation, policy, action, and evaluation paths work. Keep credentials out of repository files; the Snowflake SQL retains placeholders.
 
-The earlier synthetic prototype was removed. A [local browser advisor](advisor/README.md) now exercises both entry paths, demo-customer selection with 10 allowlisted organizer-data personas, product answers, profile-based suggestions, a [simulated precheck policy](plan/demo_credit_policy.md), and confirmed local mock applications. The public hosted mode uses separate fictional fixtures; real authentication and verified handoff remain future service requirements.
+The earlier synthetic prototype was removed. A [local browser advisor](advisor/README.md) exercises both entry paths, demo-customer selection with 10 allowlisted organizer-data personas, product answers, profile-based suggestions, a [simulated precheck policy](plan/demo_credit_policy.md), confirmed mock applications, and queued human-review handoffs. The public hosted mode uses separate fictional fixtures. Real authentication and live employee handoff remain future service requirements.

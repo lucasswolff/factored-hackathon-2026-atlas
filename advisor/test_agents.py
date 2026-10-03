@@ -2,7 +2,7 @@
 
 import unittest
 
-from advisor.agents import choose_agent, eligible_agent
+from advisor.agents import ROSTER_KEY, DynamoAgentDirectory, choose_agent, eligible_agent
 
 
 def row(agent_id, language, country, *, status="Active", specialty="Créditos", kind="Digital"):
@@ -13,6 +13,23 @@ def row(agent_id, language, country, *, status="Active", specialty="Créditos", 
 
 
 class AgentSelectionTest(unittest.TestCase):
+    def test_hosted_roster_uses_permitted_scan_and_pages(self):
+        class Table:
+            calls = []
+
+            def scan(self, **options):
+                self.calls.append(options)
+                if len(self.calls) == 1:
+                    return {"Items": [{"agent": {"agent_id": "A1"}}],
+                            "LastEvaluatedKey": {"pk": ROSTER_KEY, "sk": "A1"}}
+                return {"Items": [{"agent": {"agent_id": "A2"}}]}
+
+        table = Table()
+        self.assertEqual([r["agent_id"] for r in DynamoAgentDirectory(table).candidates()],
+                         ["A1", "A2"])
+        self.assertEqual(table.calls[0]["ExpressionAttributeValues"], {":roster": ROSTER_KEY})
+        self.assertEqual(table.calls[1]["ExclusiveStartKey"]["sk"], "A1")
+
     def test_private_contact_fields_are_dropped(self):
         agent = eligible_agent(row("A1", "español, portugués", "Mexico"))
         self.assertEqual(agent["languages"], ["español", "portugués"])

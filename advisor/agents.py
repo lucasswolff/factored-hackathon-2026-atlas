@@ -68,15 +68,15 @@ class DynamoAgentDirectory:
         self.table = table
 
     def candidates(self) -> list[dict[str, Any]]:
-        from boto3.dynamodb.conditions import Key
         rows = []
         cursor = None
         while True:
-            options: dict[str, Any] = {"KeyConditionExpression": Key("pk").eq(ROSTER_KEY),
+            options: dict[str, Any] = {"FilterExpression": "pk = :roster",
+                                       "ExpressionAttributeValues": {":roster": ROSTER_KEY},
                                        "ConsistentRead": True}
             if cursor:
                 options["ExclusiveStartKey"] = cursor
-            result = self.table.query(**options)
+            result = self.table.scan(**options)
             rows.extend(item["agent"] for item in result.get("Items", []))
             cursor = result.get("LastEvaluatedKey")
             if not cursor:

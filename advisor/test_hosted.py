@@ -188,6 +188,21 @@ class HostedTest(unittest.TestCase):
         self.assertIsNone(state["pending_action"])
         self.assertIsNone(state["application"])
 
+    def test_apply_for_unnamed_other_card_requires_card_choice(self):
+        self.judge("GET", "/")
+        self.judge("POST", "/api/start", {"entry": "direct", "country": "México",
+                                           "language": "pt", "alias": "P08"})
+        self.judge("POST", "/api/chat", {"message": "Qual cartão você me recomenda?"})
+        _, state, _ = self.judge("POST", "/api/chat", {
+            "message": "Quero solicitar outro cartão sem avaliação"})
+        self.assertEqual(state["events"][-1]["route"], "ASK_CARD")
+        self.assertEqual(state["pending_action"], {"kind": "choose_card", "card": None})
+        self.assertIsNone(state["application"])
+        _, state, _ = self.judge("POST", "/api/chat", {"message": "Rewards"})
+        self.assertEqual(state["events"][-1]["route"], "APPLICATION_CONFIRM")
+        self.assertEqual(state["application_draft"]["card"], "Rewards")
+        self.assertIsNone(state["application"])
+
     def test_pending_application_can_answer_benefits_then_reenter(self):
         self.judge("GET", "/")
         self.judge("POST", "/api/start", {"entry": "campaign", "campaign_id": "CMP-N3I2U4V7H3KU",

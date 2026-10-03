@@ -27,8 +27,18 @@ and private identifiers are excluded from Claude requests. An explicit card
 mention updates the active card, so a customer can move from a Horizon campaign
 to Rewards. When comparing Rewards and Summit, the browser keeps those two cards
 as the active topic for short follow-ups such as “Cuéntame más” or “sí”; the
-original Horizon entry card does not silently replace them. Acquisition intent
-stays in chat: the advisor asks whether it may
+original Horizon entry card does not silently replace them.
+
+Public product routing separates an explicit profile recommendation from a
+request to compare other cards. Comparisons filter the selected country's
+versioned fee terms and relevant benefits using the currently discussed card
+and any stated lower-cost or lounge preference; they do not rerun the single
+top-card profile suggestion or imply eligibility. An explicit request to apply
+for an unnamed different card asks which card first. Wording that the local
+router does not recognize remains a public model question, and the router still
+needs independent bilingual paraphrase evaluation.
+
+Acquisition intent stays in chat: the advisor asks whether it may
 run a card-specific simulated precheck using the selected profile. A typed yes
 grants one-use consent and runs the check; a typed no skips it. Either way, the
 advisor then asks separately whether to record a mock application for human

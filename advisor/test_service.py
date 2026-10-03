@@ -5,9 +5,33 @@ import json
 import os
 
 from advisor.service import Conversation, _generate, respond
+from advisor.product_routing import classify_product_intent
 
 
 class ConversationTests(unittest.TestCase):
+    def test_product_intent_routes_preferences_without_starting_actions(self):
+        examples = (
+            ("Qual cartão você me recomenda?", "PROFILE_RECOMMENDATION", False),
+            ("¿Qué tarjeta me recomiendas?", "PROFILE_RECOMMENDATION", False),
+            ("Me recomende outra opção com anuidade menor", "CATALOG_COMPARISON", True),
+            ("Tem uma opção mais em conta?", "CATALOG_COMPARISON", True),
+            ("¿Hay otra tarjeta sin cuota anual?", "CATALOG_COMPARISON", True),
+            ("Qual cartão você me recomenda para viagem?", "CATALOG_COMPARISON", False),
+            ("Qual outro cartão posso solicitar que atenda meus critérios?", "CATALOG_COMPARISON", False),
+            ("Quero solicitar outro cartão", "CHOOSE_OTHER_CARD", False),
+            ("Quiero solicitar otra tarjeta", "CHOOSE_OTHER_CARD", False),
+            ("Quero solicitar Rewards", "PUBLIC_QUESTION", False),
+            ("O cartão tem limite de crédito menor?", "PUBLIC_QUESTION", False),
+            ("Quero acesso a salas VIP e seguro viagem", "PUBLIC_QUESTION", False),
+            ("Ok, gostei do Rewards", "PUBLIC_QUESTION", False),
+            ("Quero solicitar este cartão", "PUBLIC_QUESTION", False),
+        )
+        for message, route, lower_cost in examples:
+            with self.subTest(message=message):
+                named = ("Rewards",) if "Rewards" in message else ()
+                intent = classify_product_intent(message, "Summit", named)
+                self.assertEqual((intent.kind, intent.lower_cost), (route, lower_cost))
+
     def test_sonnet_uses_low_effort_and_haiku_omits_it(self):
         wire = {"content": [{"type": "text", "text": json.dumps({"answer": "OK", "citations": []})}]}
         class Response(io.BytesIO):
@@ -141,6 +165,34 @@ class ConversationTests(unittest.TestCase):
         self.assertEqual(result["route"], "ANSWER_FACT")
         self.assertIn("MXN 15.000", result["answer"])
         self.assertIn("no un pago obligatorio", result["answer"])
+
+    def test_alternatives_filter_by_selected_card_fee_and_requested_benefit(self):
+        with patch("advisor.service._generate", side_effect=AssertionError("comparison must use facts")):
+            summit = Conversation.start("pt", "México", selected_card="Summit")
+            vip = respond(summit, "Há outro cartão mais barato com sala VIP?", directory=object())
+            self.assertEqual(vip["route"], "ANSWER_FACT")
+            self.assertIn("Rewards:", vip["answer"])
+            self.assertNotIn("Horizon:", vip["answer"])
+            self.assertEqual(summit.selected_card, "Summit")
+
+            horizon = Conversation.start("es", "México", selected_card="Horizon")
+            no_fee = respond(horizon, "¿Hay otra tarjeta sin cuota anual?", directory=object())
+            self.assertIn("Campus:", no_fee["answer"])
+            self.assertNotIn("Rewards:", no_fee["answer"])
+
+            rewards = Conversation.start("pt", "México", selected_card="Rewards")
+            choice = respond(rewards, "Quero solicitar outro cartão", directory=object())
+            self.assertEqual(choice["route"], "ASK_CARD")
+            self.assertTrue(choice["wants_application"])
+            no_check = respond(rewards, "Quero solicitar outro cartão sem avaliação", directory=object())
+            self.assertEqual(no_check["route"], "ASK_CARD")
+            self.assertTrue(no_check["skip_precheck"])
+
+            direct = Conversation.start("pt", "México")
+            travel = respond(direct, "Qual cartão você me recomenda para viagem?", directory=object())
+            self.assertEqual(travel["route"], "ANSWER_FACT")
+            self.assertIn("Summit:", travel["answer"])
+            self.assertIn("Rewards:", travel["answer"])
 
     def test_credit_question_routes_to_precheck_and_model_action_claim_is_blocked(self):
         chat = Conversation.start("pt", "Colombia", "CMP-NM2UHJMKPA0C")

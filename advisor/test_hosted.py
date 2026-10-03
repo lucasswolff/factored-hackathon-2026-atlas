@@ -149,20 +149,44 @@ class HostedTest(unittest.TestCase):
         self.assertEqual(reopened.read(self.app.sessions[self.cookie.split("=", 1)[1]].conversation_id,
                                        "Horizon")["application_id"], reference)
 
-    def test_pending_application_can_switch_to_other_card_suggestion(self):
+    def test_pending_application_can_switch_to_other_card_comparison(self):
         self.judge("GET", "/")
         self.judge("POST", "/api/start", {"entry": "campaign", "campaign_id": "CMP-NM2UHJMKPA0C",
                                            "country": "México", "language": "pt", "alias": "P05"})
         self.judge("POST", "/api/chat", {"message": "quero esse cartão"})
         _, state, _ = self.judge("POST", "/api/chat", {"message": "sim"})
         self.assertEqual(state["events"][-1]["route"], "APPLICATION_CONFIRM")
-        _, state, _ = self.judge("POST", "/api/chat", {"message": "qual outro cartão posso solicitar que atenda meus critérios?"})
-        self.assertEqual(state["events"][-1]["route"], "POLICY_SUGGESTION")
+        with patch("advisor.service._generate", side_effect=AssertionError("alternative must stay factual")):
+            _, state, _ = self.judge("POST", "/api/chat", {"message": "qual outro cartão posso solicitar que atenda meus critérios?"})
+        self.assertEqual(state["events"][-1]["route"], "ANSWER_FACT")
+        self.assertIn("Horizon", state["events"][-1]["text"])
+        self.assertIn("Summit", state["events"][-1]["text"])
+        self.assertEqual(state["conversation"]["selected_card"], "Rewards")
         self.assertIsNone(state["pending_action"])
         self.assertIsNone(state["application_draft"])
         self.assertIsNone(state["application"])
         _, state, _ = self.judge("POST", "/api/chat", {"message": "outro cartão"})
+        self.assertEqual(state["events"][-1]["route"], "ANSWER_FACT")
+
+    def test_summit_recommendation_followed_by_lower_cost_request(self):
+        self.judge("GET", "/")
+        self.judge("POST", "/api/start", {"entry": "direct", "country": "México",
+                                           "language": "pt", "alias": "P08"})
+        _, state, _ = self.judge("POST", "/api/chat", {"message": "Qual cartão você me recomenda?"})
         self.assertEqual(state["events"][-1]["route"], "POLICY_SUGGESTION")
+        self.assertEqual(state["conversation"]["selected_card"], "Summit")
+        with patch("advisor.service._generate", side_effect=AssertionError("lower-cost request must stay factual")):
+            _, state, _ = self.judge("POST", "/api/chat", {
+                "message": "Esse valor é muito alto para mim. Existe algum cartão com valor menor e bons benefícios?"})
+        answer = state["events"][-1]
+        self.assertEqual(answer["route"], "ANSWER_FACT")
+        self.assertIn("Rewards", answer["text"])
+        self.assertIn("Horizon", answer["text"])
+        self.assertIn("MXN 15.000", answer["text"])
+        self.assertNotIn("Sugestão para conversar: Summit", answer["text"])
+        self.assertEqual(state["conversation"]["selected_card"], "Summit")
+        self.assertIsNone(state["pending_action"])
+        self.assertIsNone(state["application"])
 
     def test_pending_application_can_answer_benefits_then_reenter(self):
         self.judge("GET", "/")

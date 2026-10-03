@@ -116,6 +116,32 @@ class ConversationTests(unittest.TestCase):
             result = respond(chat, "Eu quero saber mais sobre os benefícios do Rewards")
         self.assertEqual(result["route"], "ANSWER_FACT")
 
+    def test_cheaper_card_followup_uses_offer_fees_not_profile_suggestion(self):
+        cases = (
+            ("Colombia", "COP 3.000.000", "FEE.CO"),
+            ("México", "MXN 15.000", "FEE.MX"),
+            ("Argentina", "ARS 400.000", "FEE.AR"),
+        )
+        for country, threshold, fee_id in cases:
+            with self.subTest(country=country):
+                chat = Conversation.start("pt", country, selected_card="Summit")
+                with patch("advisor.service._generate", side_effect=AssertionError("comparison must use facts")):
+                    result = respond(chat, "Esse valor é alto. Existe algum cartão com valor menor e bons benefícios?",
+                                     directory=object())
+                self.assertEqual(result["route"], "ANSWER_FACT")
+                self.assertIn(threshold, result["answer"])
+                self.assertIn("Rewards", result["answer"])
+                self.assertIn("Horizon", result["answer"])
+                self.assertIn("não um pagamento obrigatório", result["answer"])
+                self.assertIn(fee_id, result["citations"])
+                self.assertEqual(chat.selected_card, "Summit")
+        chat = Conversation.start("es", "México", selected_card="Summit")
+        with patch("advisor.service._generate", side_effect=AssertionError("comparison must use facts")):
+            result = respond(chat, "Háblame de otra tarjeta más barata que Summit", directory=object())
+        self.assertEqual(result["route"], "ANSWER_FACT")
+        self.assertIn("MXN 15.000", result["answer"])
+        self.assertIn("no un pago obligatorio", result["answer"])
+
     def test_credit_question_routes_to_precheck_and_model_action_claim_is_blocked(self):
         chat = Conversation.start("pt", "Colombia", "CMP-NM2UHJMKPA0C")
         chat.demo_alias = "P04"

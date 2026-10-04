@@ -18,7 +18,7 @@ from urllib.request import Request, urlopen
 from .product_routing import ProductIntent, classify_product_intent, normalize
 
 ROOT = Path(__file__).resolve().parents[1]
-FACT_VERSION = "CONV-FACTS-2026-10-04-v6"
+FACT_VERSION = "CONV-FACTS-2026-10-04-v7"
 CAMPAIGNS = {
     "CMP-YYT37NY1CZS7": ("Campus", "Colombia"),
     "CMP-I5TGQ4SXP4EG": ("Horizon", None),

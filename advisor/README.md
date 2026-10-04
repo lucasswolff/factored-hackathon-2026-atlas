@@ -122,7 +122,7 @@ python3 -m advisor --language es --model claude-haiku-4-5-20251001  # experiment
 
 A campaign start uses a historical campaign ID mapped to a team-created card;
 a direct start has no campaign. Both use the synthetic
-`CONV-FACTS-2026-10-04-v6` fact sheet for public Spanish/Portuguese product
+`CONV-FACTS-2026-10-04-v7` fact sheet for public Spanish/Portuguese product
 questions. Do not enter personal identifiers or account details. Public
 questions and recent public turns go to Anthropic. Customer profile fields,
 recommendation rules, and simulated precheck results stay in local code and

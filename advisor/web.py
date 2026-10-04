@@ -299,15 +299,24 @@ class WebApp:
         state.pending_action = pending("post_application_followup", record["card"])
         return record
 
-    def _ask_application(self, state: BrowserSession, chat: Conversation, card: str) -> dict[str, Any]:
+    @staticmethod
+    def _other_application_block(state: BrowserSession, chat: Conversation,
+                                 card: str | None) -> dict[str, Any] | None:
         if state.application_record and state.application_record["card"] != card:
             recorded = state.application_record["card"]
+            other = f"o {card}" if card else "outros cartões"
+            other_es = card or "otras tarjetas"
             answer = (f"Você já tem uma solicitação de {recorded} registrada nesta conversa. "
-                      f"Posso explicar ou avaliar o {card}, mas para solicitar outro cartão, inicie uma nova conversa."
+                      f"Posso explicar ou avaliar {other}, mas para solicitar outro cartão, inicie uma nova conversa."
                       if chat.language == "pt" else
                       f"Ya tienes una solicitud de {recorded} registrada en esta conversación. "
-                      f"Puedo explicar o evaluar {card}, pero para solicitar otra tarjeta, inicia una conversación nueva.")
+                      f"Puedo explicar o evaluar {other_es}, pero para solicitar otra tarjeta, inicia una conversación nueva.")
             return {"answer": answer, "citations": [], "route": "APPLICATION_EXISTS", "card": card}
+        return None
+
+    def _ask_application(self, state: BrowserSession, chat: Conversation, card: str) -> dict[str, Any]:
+        if block := self._other_application_block(state, chat, card):
+            return block
         existing = self._prepare_application(state, chat, card)
         if existing:
             state.pending_action = pending("post_application_followup", card)
@@ -320,6 +329,8 @@ class WebApp:
 
     def _ask_precheck(self, state: BrowserSession, chat: Conversation,
                       card: str, *, apply_after: bool) -> dict[str, Any]:
+        if apply_after and state.application_record:
+            return self._ask_application(state, chat, card)
         state.pending_action = pending("precheck_choice", card, apply_after=apply_after)
         return {"answer": precheck_question(card, chat.language, apply_after=apply_after),
                 "citations": [], "route": "ASK_PRECHECK_CONSENT", "card": card}
@@ -810,6 +821,9 @@ class WebApp:
                         if chat.language == "pt" else
                         " ¿Quieres que registre una solicitud para que un especialista en crédito revise tu pregunta? Responde sí o no."),
                         "route": "OFFER_HANDOFF"}
+                if (result["route"] == "ASK_CARD" and result.get("wants_application")
+                        and state.application_record):
+                    result = self._other_application_block(state, chat, None)
                 if result["route"] == "ASK_CARD":
                     state.pending_action = pending("choose_card", None,
                                                    apply_after=result.get("wants_application", False))

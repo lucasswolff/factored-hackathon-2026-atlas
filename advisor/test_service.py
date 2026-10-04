@@ -221,6 +221,14 @@ class ConversationTests(unittest.TestCase):
             self.assertIn("Summit:", travel["answer"])
             self.assertIn("Rewards:", travel["answer"])
 
+    def test_named_card_in_price_comparison_does_not_switch_selected_card(self):
+        chat = Conversation.start("pt", "México", selected_card="Horizon")
+        with patch("advisor.service._generate", side_effect=AssertionError("comparison must use facts")):
+            result = respond(chat, "quero um cartão mais barato que o Summit")
+        self.assertIn("Rewards:", result["answer"])
+        self.assertIn("Horizon:", result["answer"])
+        self.assertEqual(chat.selected_card, "Horizon")
+
     def test_credit_question_routes_to_precheck_and_model_action_claim_is_blocked(self):
         chat = Conversation.start("pt", "Colombia", "CMP-NM2UHJMKPA0C")
         chat.demo_alias = "P04"
@@ -352,6 +360,8 @@ class ConversationTests(unittest.TestCase):
     def test_benefits_and_annual_fee_keep_both_topics_in_context(self):
         examples = (
             ("pt", "México", "quais os beneficios deste cartão e qual a anualidade?", "FEE.MX"),
+            ("pt", "México", "quais os beneficios e qual a mensalidade?", "FEE.MX"),
+            ("pt", "México", "quais os beneficios e quanto pago todo mês?", "FEE.MX"),
             ("es", "México", "¿Qué beneficios tiene esta tarjeta y qual la anualidad?", "FEE.MX"),
             ("es", "México", "¿Cuáles son los beneficios y cuánto es la anualidad?", "FEE.MX"),
             ("es", "Colombia", "¿Qué beneficios tiene y cuál es la cuota anual?", "FEE.CO"),
@@ -371,6 +381,8 @@ class ConversationTests(unittest.TestCase):
                 for fact in ("BENEFIT.SUMMIT", fee_id, "FEE.WAIVER"):
                     self.assertIn(f"[{fact}]", system)
                 self.assertNotIn("[BENEFIT.REWARDS]", system)
+                for other_fee in {"FEE.CO", "FEE.MX", "FEE.AR"} - {fee_id}:
+                    self.assertNotIn(f"[{other_fee}]", system)
 
     def test_combined_question_retries_answer_that_omits_annual_fee(self):
         chat = Conversation.start("pt", "México", selected_card="Summit")
@@ -386,6 +398,18 @@ class ConversationTests(unittest.TestCase):
         self.assertIn("omitted a requested topic", model.call_args.args[0])
         self.assertIn("MXN 6.000", result["answer"])
         self.assertEqual(result["citations"], ["BENEFIT.SUMMIT", "FEE.MX", "FEE.WAIVER"])
+
+    def test_monthly_fee_question_retries_benefit_only_answer(self):
+        chat = Conversation.start("pt", "México", selected_card="Summit")
+        with patch("advisor.service._generate", side_effect=[
+            {"answer": "O Summit oferece milhas; não tenho a mensalidade.",
+             "citations": ["BENEFIT.SUMMIT"]},
+            {"answer": "O Summit oferece milhas e a parcela mensal máxima é MXN 500, com isenção por gastos elegíveis.",
+             "citations": ["BENEFIT.SUMMIT", "FEE.MX", "FEE.WAIVER"]},
+        ]) as model:
+            result = respond(chat, "quais os beneficios e qual a mensalidade?")
+        self.assertEqual(model.call_count, 2)
+        self.assertIn("MXN 500", result["answer"])
 
     def test_travel_details_are_available_without_inventing_partners(self):
         chat = Conversation.start("es", "Argentina", selected_card="Summit")
@@ -406,6 +430,7 @@ class ConversationTests(unittest.TestCase):
         system = model.call_args.args[0]
         self.assertIn("[BENEFIT.HORIZON]", system)
         self.assertNotIn("[BENEFIT.CAMPUS]", system)
+        self.assertIn("[FEE.CO]", system)
         self.assertNotIn("No lounge visits", system)
         self.assertNotIn("travel insurance", system)
 

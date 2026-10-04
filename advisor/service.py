@@ -362,6 +362,7 @@ def respond(conversation: Conversation, message: str,
         conversation.precheck_consent_card = None
         answer = "Conversa encerrada." if conversation.language == "pt" else "Conversación terminada."
         return {"answer": answer, "citations": [], "route": "STOP", "fact_version": FACT_VERSION}
+    previous_card = conversation.selected_card
     mentioned_cards = [card for card in CARD_NAMES if re.search(rf"\b{card.casefold()}\b", lower)]
     if len(mentioned_cards) == 1:
         conversation.selected_card = mentioned_cards[0]
@@ -439,7 +440,11 @@ def respond(conversation: Conversation, message: str,
                 "route": "SERVICE_BOUNDARY", "fact_version": FACT_VERSION}
     product_intent = classify_product_intent(message, conversation.selected_card, tuple(mentioned_cards))
     if product_intent.kind == "CATALOG_COMPARISON":
-        return _alternative_cards(conversation, message, product_intent)
+        result = _alternative_cards(conversation, message, product_intent)
+        if len(mentioned_cards) == 1:
+            # A named comparison reference does not select that card for later turns.
+            conversation.selected_card = previous_card
+        return result
     if product_intent.kind == "CHOOSE_OTHER_CARD":
         answer = ("Qual outro cartão você quer solicitar: Campus, Horizon, Rewards ou Summit?"
                   if conversation.language == "pt" else
@@ -633,18 +638,22 @@ def respond(conversation: Conversation, message: str,
         and len(mentioned_cards) < 2
         and (bool(re.search(r"\b(?:benefícios|beneficios|benefits)\b", lower)) or broad_more)
     )
-    asks_annual_fee = bool(re.search(
-        r"\b(?:anuidade|anualidade|anualidad|cuota anual|tarifa anual|annual fee)\b",
+    asks_fee = bool(re.search(
+        r"\b(?:anuidade|anualidade|anualidad|mensalidade|mensualidad|cuota anual|cuota mensual|tarifa anual|annual fee|monthly fee)\b",
         normalize(message)))
     fee_id = {"Colombia": "FEE.CO", "México": "FEE.MX", "Argentina": "FEE.AR"}[conversation.country]
     simple_benefits = selected_card_benefits and not any(
         term in lower for term in ("sala vip", "lounge", "seguro", "cobertura", "insurance", "coverage"))
     if selected_card_benefits:
-        selected_facts = {f"BENEFIT.{conversation.selected_card.upper()}"}
-        if not simple_benefits:
-            selected_facts.update({"TRAVEL.RULES", "UNKNOWN.TRAVEL"})
-        if asks_annual_fee:
-            selected_facts.update({fee_id, "FEE.WAIVER"})
+        # Keep every relevant public topic available for a multi-part question.
+        # Scope by the known card and country, never by guessed question words.
+        selected_facts = {f"BENEFIT.{conversation.selected_card.upper()}",
+                          fee_id, "FEE.WAIVER",
+                          {"Colombia": "RATE.CO", "México": "RATE.MX", "Argentina": "RATE.AR"}[conversation.country],
+                          "CATALOG.IDENTITY", "MILES.HISTORY", "UNKNOWN.COST",
+                          "TRAVEL.RULES", "UNKNOWN.TRAVEL"}
+        if conversation.country == "Argentina":
+            selected_facts.add("FEE.AR_REVIEW")
         facts = [(fid, body) for fid, body in facts
                  if fid in selected_facts]
     if simple_benefits:
@@ -682,7 +691,7 @@ def respond(conversation: Conversation, message: str,
         "Do not call a card ideal or guaranteed suitable for a particular customer based only on a Student segment or a chat statement; enrollment is unverified. "
         "Translate 'statement credit' as 'crédito na fatura' in Portuguese or 'abono en el estado de cuenta' in Spanish. "
         "When asked about benefits, lead with the positive features of the requested card; do not list missing features unless asked. "
-        "Answer every explicit part of a multi-part question, including an annual-fee question paired with benefits. "
+        "Answer every explicit part of a multi-part question. If the user asks for this card's mensalidade, mensualidad, or monthly fee, explain the listed monthly installment of its annual fee and the waiver condition. "
         "When asked which cards offer a feature, name only the cards that offer it. "
         "Do not add unrelated fees, rates, missing information, or general caveats to a benefits answer. "
         "For broad 'tell me more' questions, summarize the main benefits first and invite a question about fees or rates instead of dumping every term. "
@@ -722,7 +731,7 @@ def respond(conversation: Conversation, message: str,
                                   "Answer the product question using only the listed facts; do not mention an action or handoff.")
                 else:
                     correction = (" Your previous answer omitted a requested topic. "
-                                  "Answer both benefits and annual fee using the listed facts.")
+                                  "Answer both benefits and the requested fee or installment using the listed facts.")
             if before_model_call is not None:
                 before_model_call()
             result = _generate(system + correction, context, model)
@@ -733,7 +742,7 @@ def respond(conversation: Conversation, message: str,
             answer, citations, route = result["answer"].strip(), result["citations"], "ANSWER_FACT"
             unresolved = result.get("unresolved", False)
             action_retry = bool(UNVERIFIED_ACTION.search(answer))
-            fee_retry = (selected_card_benefits and asks_annual_fee and
+            fee_retry = (selected_card_benefits and asks_fee and
                          not {f"BENEFIT.{conversation.selected_card.upper()}", fee_id}.issubset(citations))
             if not action_retry and not fee_retry:
                 break

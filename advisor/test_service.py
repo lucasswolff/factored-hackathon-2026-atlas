@@ -326,7 +326,10 @@ class ConversationTests(unittest.TestCase):
     def test_benefits_and_annual_fee_keep_both_topics_in_context(self):
         examples = (
             ("pt", "México", "quais os beneficios deste cartão e qual a anualidade?", "FEE.MX"),
+            ("es", "México", "¿Qué beneficios tiene esta tarjeta y qual la anualidad?", "FEE.MX"),
+            ("es", "México", "¿Cuáles son los beneficios y cuánto es la anualidad?", "FEE.MX"),
             ("es", "Colombia", "¿Qué beneficios tiene y cuál es la cuota anual?", "FEE.CO"),
+            ("es", "Argentina", "¿Qué beneficios ofrece Summit y cuál es su tarifa anual?", "FEE.AR"),
             ("pt", "Argentina", "Quais os benefícios e a anuidade?", "FEE.AR"),
         )
         for language, country, question, fee_id in examples:

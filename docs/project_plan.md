@@ -27,6 +27,18 @@ slides and video remain pending.
 
 **Current priority:** obtain independent bilingual judgments and prepare submission evidence. The [automated paired evaluation](automated_evaluation_2026-10-04.md) now runs a frozen 20-case Spanish/Portuguese workload twice through the browser API against a keyword FAQ baseline, with route/action checks, local end-to-end timing, token-based provider cost, and supplemental fault probes. It is a post-fix automated regression, not independent held-out quality evidence. The [campaign mapping](../plan/campaign_cards.md), [four-card demo catalog](card_catalog_draft.md), and [synthetic policy](../plan/demo_credit_policy.md) are drafted. The UI exposes campaign/direct entry, a “Choose a demo customer” screen, Spanish/Portuguese product chat, suggestions, chat-consented prechecks, chat-confirmed mock applications with verified `PENDING_REVIEW` read-back, and confirmed handoffs with a mock roster assignment. The hosted judge flow is public and uses separate fictional fixtures; the review queue requires a code. Selecting a fixture permits profile use but is not authentication. Independent bilingual judgments, real authentication, and an actual employee-service integration remain open. The user chose conversation quality over campaign-click prediction. The earlier synthetic prototype was removed.
 
+**Update, 2026-10-04:** The deployed router now asks Claude Haiku to classify
+fresh intent before the service handles policy or actions. The [live conversation
+checks](live_conversation_checks_2026-10-04.md) recorded 7/8 expected results
+across benefit/fee, card context, comparison, negation, application, student,
+decline/confirm, and cancellation flows. A two-card lower-cost reference
+remains unreliable; the 7/8 count is a smoke result, not independent quality
+evidence. A later second-application check confirmed that the service now
+explains its one-application-per-conversation limit before precheck consent.
+The source-data-free advisor suite passed 87 tests after that fix. The prior
+paired evaluation predates the model-first router and must not be reused as
+a score for it.
+
 ## Scope and evidence
 
 The MVP is a **Credit-Product Info & Eligibility Support** journey with two starts: the judge clicks a supplied campaign card mapped to a named offer, or visits the advisor directly with no campaign context. The click is newly simulated; no historical clicked chat is selected. Both paths lead to “Choose a demo customer” before Spanish or Portuguese chat. Fixture selection enables profile-based suggestions; it is not real authentication. A later separately consented simulated precheck may lead to a customer decline, confirmed mock application, or human handoff. A/B testing follows only after the service works. The earlier dispute proposal is archived in [transaction_dispute_plan.md](transaction_dispute_plan.md).

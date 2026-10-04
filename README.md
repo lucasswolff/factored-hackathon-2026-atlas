@@ -14,9 +14,9 @@ The deployed project is an AI-assisted **Credit-Product Info & Eligibility Suppo
 
 ## Hosted architecture
 
-![Architecture of the hosted advisor: visitor entry and fixture selection lead to a Lambda-hosted conversation service; controlled routing uses public facts, optional Claude answers, deterministic profile and precheck tools, and verified DynamoDB actions; a protected reviewer reads confirmed applications and handoffs.](docs/architecture.svg)
+![Architecture of the hosted advisor: visitor entry and fixture selection lead to a Lambda-hosted conversation service; Claude classifies fresh intent and answers grounded public questions, while the service controls policy, consent, and verified DynamoDB actions.](docs/architecture.svg)
 
-The [architecture diagram](docs/architecture.svg) shows the deployed AWS path. The browser uses an HTTPS Lambda Function URL. A server-bound session holds the chosen fictional fixture and active card. The service handles consent, recommendations, prechecks, application confirmation, and handoff confirmation; Claude only answers public product questions using a versioned fact sheet. DynamoDB stores expiring sessions, the shared model-attempt counter, verified mock applications and handoffs, and the filtered agent roster. A confirmed handoff includes the conversation thread and pauses the bot in that chat. The `/review` page asks for a separate code before loading protected queue data; there is no employee reply interface. The local browser mode uses organizer-data demo personas and SQLite mock actions; it is distinct from the public fictional-fixture deployment.
+The [architecture diagram](docs/architecture.svg) shows the deployed AWS path. The browser uses an HTTPS Lambda Function URL. A server-bound session holds the chosen fictional fixture and active card. Claude Haiku classifies fresh chat intent into bounded choices; Claude Sonnet answers many public product questions using a versioned fact sheet. The service handles consent, recommendations, prechecks, application confirmation, and handoff confirmation. DynamoDB stores expiring sessions, the shared model-attempt counter, verified mock applications and handoffs, and the filtered agent roster. A confirmed handoff includes the conversation thread and pauses the bot in that chat. The `/review` page asks for a separate code before loading protected queue data; there is no employee reply interface. The local browser mode uses organizer-data demo personas and SQLite mock actions; it is distinct from the public fictional-fixture deployment.
 
 **Current priority:** evaluate Spanish/Portuguese product answers and prepare submission evidence. The [AWS deployment](infra/aws/README.md) has passed a [judge rehearsal](docs/judge_rehearsal_2026-10-02.md); check its live status before sharing the URL. The local browser advisor remains available with `python3 -m advisor.web` at `http://127.0.0.1:8765/`. Its public-answer default is Sonnet 5 at low effort after a [development latency comparison](plan/conversation_data/latency_model_comparison.md); the deterministic customer and precheck flow stays local. Read the [project plan](docs/project_plan.md), [MVP requirements](docs/mvp_requirements.md), and [AGENTS.md](AGENTS.md) before extending scope.
 
@@ -29,6 +29,10 @@ compares the browser advisor with a keyword FAQ baseline on a locked fictional
 case set and reports action read-back, failures, local latency, and estimated
 provider cost. It is agent-authored post-fix regression evidence, not
 independent bilingual human validation.
+The later [production conversation smoke checks](docs/live_conversation_checks_2026-10-04.md)
+cover eight unscripted flow families plus earlier routing, quota, and
+one-application regressions. One two-card price comparison failed; these checks
+are development evidence, not a new held-out score.
 
 - `docs/factored_docs/`: organizer brief and data dictionaries.
 - `docs/mvp_requirements.md`: workflow and demo acceptance criteria.

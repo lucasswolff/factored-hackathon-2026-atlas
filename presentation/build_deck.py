@@ -270,11 +270,11 @@ def build() -> None:
     d.title("04  /  MEASURED BEHAVIOR", "87 automated tests passed; 7/8 live flows met expectations*",
             "Current 4 October build · agent-run production smoke checks.")
     numbered_card(d, 0.56, 2.05, 5.84, "1", "Product facts + context",
-                  "Benefits and monthly fee answered together with facts.\n'This card' kept Horizon. A two-card cheaper question\nfailed to clarify its price reference.", h=1.72)
+                  "Benefits and monthly fee came together with citations.\n'This card' kept Horizon across turns. A comparison\nagainst Summit returned lower-cost options.", h=1.72)
     numbered_card(d, 6.61, 2.05, 6.17, "2", "Intent + consent",
-                  "Negation then application reached card-specific consent.\nAn unnamed other card triggered card choice. Declined\nprecheck never created an application by itself.", h=1.72)
+                  "A new application request reached card-specific consent.\nAn unnamed other card prompted a card choice.\nPrecheck decline led to a separate application choice.", h=1.72)
     numbered_card(d, 0.56, 4.02, 5.84, "3", "Profile + service boundaries",
-                  "Student suggestion named fixture and unverified status.\nExisting-card cancellation was refused. A second\napplication was blocked before another precheck.", h=1.72)
+                  "Student suggestion named the selected demo profile and\nits unverified enrollment. Cancellation got a support\npath; a second application got the one-per-chat rule.", h=1.72)
     numbered_card(d, 6.61, 4.02, 6.17, "4", "Dated evidence + capacity",
                   "Current build: 87 local tests; 7/8* live smoke flows.\nEarlier rehearsal: 12 entry paths, 3 application\nread-backs, 24 HTTP requests from six visitors.", h=1.72)
     d.rect(0.56, 6.03, 12.22, 0.81, PALE, stroke=LINE, radius=0.11)

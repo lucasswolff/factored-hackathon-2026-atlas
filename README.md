@@ -24,6 +24,11 @@ The six-slide [Atlas presentation](presentation/README.md) includes a real Spani
 
 The [release and evaluation plan](docs/release_readiness.md) maps the organizer
 requirements to the remaining evaluation, measurement, and submission work.
+The [automated bilingual journey evaluation](docs/automated_evaluation_2026-10-04.md)
+compares the browser advisor with a keyword FAQ baseline on a locked fictional
+case set and reports action read-back, failures, local latency, and estimated
+provider cost. It is agent-authored post-fix regression evidence, not
+independent bilingual human validation.
 
 - `docs/factored_docs/`: organizer brief and data dictionaries.
 - `docs/mvp_requirements.md`: workflow and demo acceptance criteria.

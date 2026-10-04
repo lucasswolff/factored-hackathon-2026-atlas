@@ -19,6 +19,8 @@
 | [snapshots/source_pack_v3.md](snapshots/source_pack_v3.md) | Exact fact snapshot used to author and score the AI challenge before the later USD-rule correction. |
 | [heldout_author_brief.md](heldout_author_brief.md) | Instructions for a different writer and bilingual reviewer to create a leakage-resistant final test set. |
 | [ai_review_2026_10_03_comparison.md](ai_review_2026_10_03_comparison.md) | New 24-case AI-authored, AI-blind-labeled, AI-judged development comparison of full and keyword context, with a separate E5 retrieval result and known answer failures. It is not human-validated held-out performance. |
+| [automated_holdout_2026_10_04.jsonl](automated_holdout_2026_10_04.jsonl) | Locked agent-authored browser-journey cases for the [automated paired evaluation](../../docs/automated_evaluation_2026-10-04.md); not independently human-reviewed. |
+| [automated_route_adjudication_2026_10_04.jsonl](automated_route_adjudication_2026_10_04.jsonl) | Separate post-hoc route-label revision for two disputed cases; see the [adjudication note](../../docs/route_adjudication_2026-10-04.md). The original case file and scores stay intact. |
 
 The snapshot pins [card offer draft `CARD-CATALOG-DRAFT-2026-09-28`](../card_offer_terms.md) and the [MVP requirements](../../docs/mvp_requirements.md). It freezes **what the offline pilot may evaluate**, not when an offer becomes effective. Changing a rate, fee, benefit, or access rule requires a new snapshot ID and re-review of affected labels. Cases in `pilot_cases.jsonl` are all `development_draft`; none may be reported as held-out performance or independent ground truth.
 

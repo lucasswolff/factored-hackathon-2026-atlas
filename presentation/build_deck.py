@@ -267,20 +267,20 @@ def build() -> None:
 
     # 5. Current checks and their limits
     d.start()
-    d.title("04  /  MEASURED BEHAVIOR", "Live checks show progress and a remaining failure",
-            "4 October production smoke probes are separate from the earlier paired evaluation and judge rehearsal.")
+    d.title("04  /  MEASURED BEHAVIOR", "87 automated tests passed; 7 of 8 live flows met expectations",
+            "Current 4 October build · The two-card cheaper comparison remains an open failure.")
     numbered_card(d, 0.56, 2.05, 5.84, "1", "Product facts + context",
                   "Benefits and monthly fee answered together with facts.\n'This card' kept Horizon. A two-card cheaper question\nfailed to clarify its price reference.", h=1.72)
     numbered_card(d, 6.61, 2.05, 6.17, "2", "Intent + consent",
                   "Negation then application reached card-specific consent.\nAn unnamed other card triggered card choice. Declined\nprecheck never created an application by itself.", h=1.72)
     numbered_card(d, 0.56, 4.02, 5.84, "3", "Profile + service boundaries",
                   "Student suggestion named fixture and unverified status.\nExisting-card cancellation was refused. A second\napplication was blocked before another precheck.", h=1.72)
-    numbered_card(d, 6.61, 4.02, 6.17, "4", "Evidence + capacity",
-                  "7/8 live smoke scenarios met expectation; 87 local tests\npassed. Shared cap: 400 model attempts per UTC day.\nNo independent bilingual quality result yet.", h=1.72)
+    numbered_card(d, 6.61, 4.02, 6.17, "4", "Dated evidence + capacity",
+                  "Current build: 87 local tests; 7/8 live smoke flows.\nEarlier rehearsal: 12 entry paths, 3 application\nread-backs, 24 HTTP requests from six visitors.", h=1.72)
     d.rect(0.56, 6.18, 12.22, 0.55, PALE, stroke=LINE, radius=0.11)
     d.text(0.78, 6.35, 11.75, 0.24,
-           "Earlier 2 Oct rehearsal only: 12 entry/country/language paths; 3 application read-backs; 24 HTTP requests from six visitors.",
-           9.6, bold=True, color=TEAL)
+           "Separate, noncumulative checks  ·  400 model attempts/day cap  ·  No independent bilingual review or peak load test",
+           10.0, bold=True, color=TEAL)
     d.finish()
 
     # 6. Roadmap to a real customer service

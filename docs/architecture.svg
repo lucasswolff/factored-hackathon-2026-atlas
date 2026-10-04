@@ -61,11 +61,11 @@
 
   <text x="48" y="466" class="band">SERVER-OWNED CONVERSATION FLOW</text>
   <rect x="40" y="483" width="320" height="173" rx="14" class="soft"/>
-  <text x="60" y="514" class="head">Routing + state</text>
-  <text x="60" y="542" class="body">Tracks active card and chat history</text>
-  <text x="60" y="566" class="body">Resolves pending yes/no choices</text>
-  <text x="60" y="590" class="body">Clarifies ambiguous requests</text>
-  <text x="60" y="614" class="body">Offers review for unknown answers</text>
+  <text x="60" y="514" class="head">Service router + state</text>
+  <text x="60" y="542" class="body">Validates Haiku intent choice</text>
+  <text x="60" y="566" class="body">Active card + pending yes/no</text>
+  <text x="60" y="590" class="body">Clarifies ambiguous actions</text>
+  <text x="60" y="614" class="body">Offers review for unknown facts</text>
   <text x="60" y="638" class="small">No model-controlled consent or write</text>
 
   <rect x="386" y="483" width="320" height="173" rx="14" class="soft"/>

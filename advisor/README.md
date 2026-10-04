@@ -29,17 +29,21 @@ to Rewards. When comparing Rewards and Summit, the browser keeps those two cards
 as the active topic for short follow-ups such as “Cuéntame más” or “sí”; the
 original Horizon entry card does not silently replace them.
 
-Public product routing separates an explicit profile recommendation from a
-request to compare other cards. Comparisons filter the selected country's
-versioned fee terms and relevant benefits using the currently discussed card
-and any stated lower-cost or lounge preference; they do not rerun the single
-top-card profile suggestion or imply eligibility. An explicit request to apply
-for an unnamed different card asks which card first. When the local router
-misses an explicit application request, Claude can label that intent in a
-structured field; the host then starts its own consent flow and discards the
-model's action wording. The model cannot grant consent, create an application,
-or confirm a stored result. The router and model classifier still need
-independent bilingual paraphrase evaluation.
+With a model key available, a fresh turn first goes to a small Claude intent
+classifier. Its bounded choices distinguish public facts, profile suggestions,
+catalog comparisons, application requests, prechecks, existing-card cancellation,
+human help, conversation end, and clarification. The model sees the question,
+language, country, active card, and recent public turns, never fixture score,
+income, or policy output. It does not generate the action reply. The service
+validates the choice against the session and handles consent, policy, and
+storage. Security boundaries and pending consent/application questions remain
+service-owned. On classifier failure in the hosted build, the service stops
+before starting an action; the offline CLI retains its legacy local router.
+Public product questions can require a Haiku classification followed by a
+Sonnet fact answer, using two shared model attempts. This reduces the number
+of conversations supported by the hosted daily model-attempt cap until the
+route and answer are combined or a separately budgeted classifier is adopted.
+The classifier still needs independent bilingual paraphrase evaluation.
 "Best card for me" questions use the selected demo fixture's profile. The
 service reads it after persona selection and applies the synthetic policy
 locally; these answers do not call Claude or send score, income, or policy

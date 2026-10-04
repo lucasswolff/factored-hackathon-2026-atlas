@@ -38,6 +38,14 @@ private conversation records to the model. Session and consent are server-held
 state, not claims in user text. Country amounts are local currency; no income
 comparison crosses currencies. Typed accent is unknown. A campaign card may
 select an offer for discussion, but it cannot select a customer or imply consent.
+For new chat turns in the hosted experience, a structured Claude classifier
+proposes an intent before the lexical product router. The host decides whether
+that intent is valid in the session and performs every protected transition.
+Pending confirmations remain explicit stateful questions; a model label cannot
+grant consent, submit an application, or confirm storage. Classification and
+fact generation currently use separate calls for public product questions,
+which increases latency and daily model-attempt usage. A held-out bilingual
+intent evaluation is still required before treating this as reliable routing.
 
 Acceptance cases from the AI-only pilot/challenge are diagnostic seeds, **not
 independent held-out performance**:

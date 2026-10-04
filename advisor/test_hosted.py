@@ -436,6 +436,33 @@ class HostedTest(unittest.TestCase):
         self.assertEqual(state["application"]["card"], "Horizon")
         self.assertEqual(state["application"]["status"], "PENDING_REVIEW")
 
+    def test_model_first_negation_and_request_keep_action_state_separate(self):
+        self.cookie = None
+        self.judge("GET", "/")
+        self.judge("POST", "/api/start", {"entry": "direct", "country": "México",
+                                           "language": "es", "alias": "P05"})
+        base = {"card": "Horizon", "lower_annual_fee": False,
+                "no_annual_fee": False, "travel_required": False, "skip_precheck": False}
+        with patch.object(self.app, "_consume_model_attempt"), patch(
+                "advisor.service._classify_intent", return_value={**base, "intent": "PUBLIC_FACT"}), patch(
+                "advisor.service._generate", return_value={
+                    "answer": "Puedo explicar Horizon.", "citations": ["BENEFIT.HORIZON"],
+                    "unresolved": False, "application_request": "NONE",
+                    "comparison": {"kind": "NONE", "reference_card": "",
+                                   "requires_travel_benefits": False}}):
+            _, state, _ = self.judge("POST", "/api/chat", {
+                "message": "No quiero solicitar la tarjeta Horizon"})
+        self.assertEqual(state["events"][-1]["route"], "ANSWER_FACT")
+        self.assertIsNone(state["pending_action"])
+        self.assertIsNone(state["application"])
+        with patch("advisor.service._classify_intent", return_value={**base, "intent": "APPLY"}), patch(
+                "advisor.service._generate") as answer_model:
+            _, state, _ = self.judge("POST", "/api/chat", {"message": "queiro esta"})
+        self.assertEqual(state["events"][-1]["route"], "ASK_PRECHECK_CONSENT")
+        self.assertEqual(state["pending_action"]["card"], "Horizon")
+        self.assertIsNone(state["application"])
+        answer_model.assert_not_called()
+
     def test_cancellation_request_does_not_open_a_cancellation_workflow(self):
         self.judge("GET", "/")
         self.judge("POST", "/api/start", {"entry": "direct", "country": "México",

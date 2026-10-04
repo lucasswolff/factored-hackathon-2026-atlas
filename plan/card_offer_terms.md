@@ -2,7 +2,7 @@
 
 **Status: design draft, 2026-09-28.** The [four card identities](../docs/card_catalog_draft.md) are team-created. The English brand names are **Campus, Horizon, Rewards, and Summit**, unchanged in Spanish and Portuguese conversations. This document defines the offer facts that the future UI and conversational layer may use; it does not define recommendation or prequalification thresholds. A card suggestion is for a signed-in existing customer after separate permission to use profile data. A card term is never inferred from `CORE.PRODUCTS` or from a historical campaign.
 
-**Numeric draft `CARD-CATALOG-DRAFT-2026-09-28`: every figure below is synthetic, proposed, and not yet an active customer-facing offer.** It is not copied from a real bank or the organizer dataset. The user chose to keep these draft fees, spend thresholds, and interest figures for the demo. Final terms still require an effective period, benefit conditions, and complete cost disclosures; none of the figures is a guaranteed applicant rate.
+**Offer draft `CARD-CATALOG-DRAFT-2026-10-04-v2`: every term below is synthetic, proposed, and not yet an active customer-facing offer.** It is not copied from a real bank or the organizer dataset. This version keeps the previously chosen draft fees, spend thresholds, and interest figures and adds the no-commitment cancellation term. Final terms still require an effective period, benefit conditions, and complete cost disclosures; none of the figures is a guaranteed applicant rate.
 
 ## Offer matrix
 
@@ -40,6 +40,8 @@ Campus and Horizon have no annual fee and no spend requirement. For Rewards and 
 | Argentina | ARS 400,000 | ARS 5,000 | ARS 1,200,000 | ARS 15,000 |
 
 Example: a Rewards customer in México with MXN 16,000 of qualifying purchases in a full billing cycle pays **MXN 0** for that cycle's fee; with MXN 14,000, the fee is **MXN 150**. This is about card spending, **not** the customer's monthly income. A high income alone does not waive a fee.
+
+**No minimum commitment and cancellation:** Campus, Horizon, Rewards, and Summit have no minimum holding or payment period in any of the three draft country variants. A cardholder may request cancellation at any time without an early-cancellation penalty. The monthly Rewards/Summit fee installments are charges for applicable billing cycles, not a requirement to keep the card for 12 months. This is a proposed product term; the demo has no live card-cancellation action or settled-account process.
 
 **Argentina fee review:** The ARS fee and spend thresholds are fixed for each published offer version. Review them every six months **with inflation in mind**, but do **not** automatically index them to inflation or change an existing version mid-cycle. A review may result in unchanged amounts or a proposed new version. Any proposed increase requires a dated new version and advance customer notice; the draft should allow at least 60 days before a fee increase. This is a design rule for the demo, not a claim that the current figures are live. The [BCRA's card guidance](https://www.bcra.gob.ar/tarjeta-de-credito-funcionamiento-costos-y-buenas-practicas/) states that changes in charges or commissions must be communicated at least 60 calendar days in advance.
 

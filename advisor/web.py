@@ -32,6 +32,7 @@ from .chat_flow import (application_choice, application_question, choice, expire
                         wants_information)
 from .data_access import DemoDirectory
 from .policy import CARDS, OFFER_VERSION
+from .product_routing import classify_product_intent
 from .service import CAMPAIGNS, FACT_VERSION, PRIVATE_INPUT, Conversation, respond, wants_human
 from .session import (grant_precheck_consent, grant_profile_permission,
                       profile_summary, recommendation_for_session, run_precheck,
@@ -749,6 +750,9 @@ class WebApp:
                     re.search(r"\b(?:quero|desejo|quiero|deseo|solicitar|pedir)\b", plain_text(message)) and
                     re.search(r"\b(?:este|esse|esta|essa|ese|esa|this|that)\s+"
                               r"(?:cartao|tarjeta|card)\b", plain_text(message)))
+                ambiguous_price_reference = (
+                    len(state.topic_cards) > 1 and not mentioned and
+                    classify_product_intent(message, chat.selected_card).lower_cost)
                 last_assistant = next((event for event in reversed(state.events)
                                        if event["role"] == "assistant"), None)
                 if ambiguous_card_request:
@@ -756,6 +760,11 @@ class WebApp:
                                          if chat.language == "pt" else
                                          "¿Qué tarjeta quieres solicitar: Campus, Horizon, Rewards o Summit?"),
                               "citations": [], "route": "ASK_CARD", "wants_application": True}
+                elif ambiguous_price_reference:
+                    cards = " ou ".join(state.topic_cards) if chat.language == "pt" else " o ".join(state.topic_cards)
+                    result = {"answer": (f"Mais barato que qual cartão: {cards}?" if chat.language == "pt" else
+                                         f"¿Más barata que cuál tarjeta: {cards}?"),
+                              "citations": [], "route": "CLARIFY"}
                 elif expanded:
                     result = self.limited_respond(chat, expanded)
                 elif (plain_text(message) in {"quero", "quiero", "sim", "si"} and

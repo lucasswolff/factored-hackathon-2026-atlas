@@ -330,6 +330,20 @@ class BrowserJourneyTest(unittest.TestCase):
         self.assertEqual(state["application"]["status"], "PENDING_REVIEW")
         self.assertIn(state["application"]["application_id"], state["events"][-1]["text"])
 
+    def test_cheaper_followup_after_two_options_asks_for_reference(self):
+        self.request("POST", "/api/start", {"entry": "offer", "selected_card": "Horizon",
+                                            "country": "México", "language": "pt", "alias": "P05"})
+        with patch("advisor.service._generate", side_effect=AssertionError("price comparison stays local")):
+            _, state = self.request("POST", "/api/chat", {"message": "quero outro cartao"})
+            self.assertEqual(state["conversation"]["selected_card"], "Horizon")
+            _, state = self.request("POST", "/api/chat", {"message": "um mais barato"})
+            self.assertEqual(state["events"][-1]["route"], "CLARIFY")
+            self.assertIn("Rewards ou Summit", state["events"][-1]["text"])
+            _, state = self.request("POST", "/api/chat", {"message": "mais barato que o summit"})
+        self.assertEqual(state["events"][-1]["route"], "ANSWER_FACT")
+        self.assertIn("Rewards:", state["events"][-1]["text"])
+        self.assertEqual(state["conversation"]["selected_card"], "Horizon")
+
     def test_named_card_request_replaces_pending_horizon_precheck(self):
         self.request("POST", "/api/start", {"entry": "offer", "selected_card": "Horizon",
                                             "country": "México", "language": "pt", "alias": "P05"})

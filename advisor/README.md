@@ -32,8 +32,8 @@ original Horizon entry card does not silently replace them.
 With a model key available, a fresh turn first goes to a small Claude intent
 classifier. Its bounded choices distinguish public facts, profile suggestions,
 catalog comparisons, application requests, prechecks, existing-card cancellation,
-human help, conversation end, and clarification. The model sees the question,
-language, country, active card, and recent public turns, never fixture score,
+human help, conversation end, and clarification. The model sees only the latest
+question, language, country, and active card, never fixture score,
 income, or policy output. It does not generate the action reply. The service
 validates the choice against the session and handles consent, policy, and
 storage. Security boundaries and pending consent/application questions remain

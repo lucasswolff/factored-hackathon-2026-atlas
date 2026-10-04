@@ -74,6 +74,7 @@ def _classify_intent(conversation: "Conversation", message: str,
                     "travel_required", "skip_precheck"], "additionalProperties": False}
     system = (
         "Classify the customer's latest message in a Spanish/Portuguese credit-card chat. "
+        "Classify ONLY the latest message. Earlier messages cannot negate or override a new request. "
         "Choose the customer's intended next step, not a keyword match. Handle spelling mistakes, "
         "negation, and mixed languages. PUBLIC_FACT covers benefits, fees, conditions, cancellation "
         "terms, how to apply, and multi-part product questions. RECOMMEND means a personal card "
@@ -90,11 +91,13 @@ def _classify_intent(conversation: "Conversation", message: str,
         "lower_annual_fee, no_annual_fee, or travel_required when requested. Set skip_precheck only "
         "for an explicit request to apply without an initial check. Return no prose."
     )
+    # The selected card is sufficient to resolve “this card”. Prior prose can
+    # leak an old refusal into a new action request, so keep it out of routing.
     context = json.dumps({"language": conversation.language, "country": conversation.country,
                           "selected_card": conversation.selected_card,
-                          "recent_public_turns": conversation.turns[-4:],
                           "latest_message": message}, ensure_ascii=False)
     payload = {"model": "claude-haiku-4-5-20251001", "max_tokens": 250,
+               "temperature": 0,
                "system": system, "messages": [{"role": "user", "content": context}],
                "output_config": {"format": {"type": "json_schema", "schema": schema}}}
     headers = {"Content-Type": "application/json", "anthropic-version": "2023-06-01",

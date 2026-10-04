@@ -82,6 +82,8 @@ class ConversationTests(unittest.TestCase):
         select_demo_persona(chat, directory, "P08")
         grant_profile_permission(chat)
         profile = directory.read_profile(chat.demo_token, True)
+        chat.turns.extend([{"role": "user", "text": "No quiero solicitar esta tarjeta"},
+                           {"role": "assistant", "text": "Entendido"}])
         decision = {"intent": "APPLY", "card": "CURRENT", "lower_annual_fee": False,
                     "no_annual_fee": False, "travel_required": False, "skip_precheck": False}
         wire = {"content": [{"type": "text", "text": json.dumps(decision)}]}
@@ -97,7 +99,9 @@ class ConversationTests(unittest.TestCase):
         payload = json.loads(opened.call_args.args[0].data)
         self.assertEqual(payload["model"], "claude-haiku-4-5-20251001")
         self.assertIn("APPLY", payload["output_config"]["format"]["schema"]["properties"]["intent"]["enum"])
+        self.assertEqual(payload["temperature"], 0)
         context = payload["messages"][0]["content"]
+        self.assertNotIn("No quiero solicitar", context)
         self.assertNotIn("P08", context)
         self.assertNotIn(str(profile.score), context)
         self.assertNotIn(str(profile.monthly_income), context)

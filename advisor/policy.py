@@ -8,7 +8,7 @@ from decimal import Decimal
 from .data_access import Profile
 
 POLICY_VERSION = "DEMO-CREDIT-POLICY-2026-09-30-v2"
-OFFER_VERSION = "CARD-CATALOG-DRAFT-2026-10-04-v2"
+OFFER_VERSION = "CARD-CATALOG-DRAFT-2026-10-04-v3"
 CARDS = ("Campus", "Horizon", "Rewards", "Summit")
 MIN_INCOME = {
     "Colombia": {"Horizon": Decimal(3000000), "Rewards": Decimal(10000000), "Summit": Decimal(24000000)},

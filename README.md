@@ -20,6 +20,31 @@ The deployed project is an AI-assisted **Credit-Product Info & Eligibility Suppo
 
 The [architecture diagram](docs/architecture.svg) shows the deployed AWS path. The browser uses an HTTPS Lambda Function URL. A server-bound session holds the chosen fictional fixture and active card. Claude Haiku classifies the latest chat message into bounded intent choices using language, country, and the active card; Claude Sonnet answers many public product questions using a versioned fact sheet. Neither model receives the fixture's private score or income. The service validates the proposed intent and handles consent, recommendations, prechecks, application confirmation, and handoff confirmation. DynamoDB stores expiring sessions, the shared model-attempt counter, verified mock applications and handoffs, and the filtered agent roster. A confirmed handoff includes the conversation thread and pauses the bot in that chat. The `/review` page asks for a separate code before loading protected queue data; there is no employee reply interface. The local browser mode uses organizer-data demo personas and SQLite mock actions; it is distinct from the public fictional-fixture deployment.
 
+### Message routing
+
+The component diagram above shows **where** each part runs. The
+[message-routing decision tree](docs/message_routing.md) shows **what happens
+after each chat message**, including pending confirmations, model intent,
+profile suggestions, public facts, consent, and verified writes:
+
+```mermaid
+flowchart LR
+    A["Chat message"] --> B{"Pending yes/no or card choice?"}
+    B -- Yes --> C["Service handles that exact pending action"]
+    B -- No --> D{"Safety or exact-fact boundary?"}
+    D -- Yes --> E["Service answers or declines"]
+    D -- No --> F["Haiku chooses bounded intent"]
+    F --> G{"Next step"}
+    G -- Facts --> H["Public facts + Sonnet when needed"]
+    G -- Suggestion or comparison --> I["Service policy or offer terms"]
+    G -- Apply or precheck --> J["Card choice + consent + separate confirmation"]
+    J --> K["Verified mock write only after confirmation"]
+```
+
+The service also checks the session and rate limits before these branches;
+direct human requests, closing the chat, and model failure have their own safe
+paths in the full decision tree.
+
 **Current priority:** evaluate Spanish/Portuguese product answers and prepare submission evidence. The [AWS deployment](infra/aws/README.md) has passed a [judge rehearsal](docs/judge_rehearsal_2026-10-02.md); check its live status before sharing the URL. The local browser advisor remains available with `python3 -m advisor.web` at `http://127.0.0.1:8765/`. Its public-answer default is Sonnet 5 at low effort after a [development latency comparison](plan/conversation_data/latency_model_comparison.md); the deterministic customer and precheck flow stays local. Read the [project plan](docs/project_plan.md), [MVP requirements](docs/mvp_requirements.md), and [AGENTS.md](AGENTS.md) before extending scope.
 
 The six-slide [Atlas presentation](presentation/README.md) includes a real Spanish conversation capture, architecture, data sources, operational checks, and the path from prototype to a customer-facing service.

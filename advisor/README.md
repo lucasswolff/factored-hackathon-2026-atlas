@@ -39,6 +39,9 @@ validates the choice against the session and handles consent, policy, and
 storage. Security boundaries and pending consent/application questions remain
 service-owned. On classifier failure in the hosted build, the service stops
 before starting an action; the offline CLI retains its legacy local router.
+See the [message-routing decision tree](../docs/message_routing.md) for the
+order of pending prompts, service boundaries, classification, and confirmed
+actions.
 Public product questions can require a Haiku classification followed by a
 Sonnet fact answer, using two shared model attempts. The configured 200-answer
 budget now allows up to 400 provider attempts per UTC day; this is still a

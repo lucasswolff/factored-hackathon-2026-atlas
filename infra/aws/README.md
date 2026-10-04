@@ -25,7 +25,9 @@ future high-traffic deployment needs a quota increase. Returning to `false`
 stops the app while preserving the same URL and
 the mock-action table. Terraform destroy removes both the URL and the table;
 it is not the normal off switch. The shared DynamoDB daily cap defaults to
-200 **provider request attempts** across all visitors and Lambda instances.
+400 **provider request attempts** across all visitors and Lambda instances,
+derived from the configured 200-answer budget and two model calls per public
+fact answer.
 A corrective retry consumes a second slot; deterministic application and
 precheck steps consume none. Once exhausted, the app returns HTTP 429 before
 making another model request.
@@ -183,7 +185,7 @@ any other account usage. DynamoDB on-demand **request** charges can apply even
 when the table's storage is within its free allowance. CloudWatch logs are
 retained seven days. A Standard SSM parameter has no additional parameter
 storage charge. Claude usage is outside AWS and is bounded by the app's daily
-answer counter, not by AWS credits. A 200-attempt cap is not a dollar-denominated
+answer counter, not by AWS credits. A 400-attempt cap is not a dollar-denominated
 spending limit: Sonnet bills by input and output tokens, so the provider
 account's credits and spend limit still need checking. The AWS account-specific
 credit expiry and whether all future usage is credit-eligible must be checked

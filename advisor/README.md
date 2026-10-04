@@ -59,7 +59,9 @@ answer calls out that difference. An acknowledgement after no automatic
 suggestion opens a general card overview. Requests to cancel an existing card
 are directed to bank servicing; this acquisition demo cannot cancel a card.
 The hosted demo allows 120 POST requests per session in a moving ten-minute
-window, alongside a separate shared daily limit of 200 model attempts.
+window, alongside a separate shared daily limit of 400 model attempts. The
+configured 200-answer budget allows two attempts per answer because a public
+fact question commonly uses one intent call and one grounded answer call.
 
 Acquisition intent stays in chat: the advisor asks whether it may
 run a card-specific simulated precheck using the selected profile. A typed yes

@@ -18,7 +18,7 @@ from typing import Any
 from .aws_state import DynamoAnswerCounter, DynamoApplicationStore, DynamoSessionStore
 from .agents import DynamoAgentDirectory
 from .synthetic_data import SyntheticDirectory
-from .web import AdvisorServer, WebApp
+from .web import AdvisorServer, WebApp, MAX_ANSWERS_PER_DAY, model_attempt_limit
 
 _server: AdvisorServer | None = None
 _app: WebApp | None = None
@@ -51,9 +51,11 @@ def _initialize() -> None:
     os.environ["ANTHROPIC_API_KEY"] = values["ANTHROPIC_API_KEY"]
     os.environ["ADVISOR_REVIEW_CODE"] = values["ADVISOR_REVIEW_CODE"]
 
-    limit = int(os.environ.get("ADVISOR_MAX_ANSWERS_PER_DAY", "200"))
-    if not 1 <= limit <= 200:
-        raise RuntimeError("Invalid answer limit")
+    answer_budget = int(os.environ.get("ADVISOR_MAX_ANSWERS_PER_DAY", str(MAX_ANSWERS_PER_DAY)))
+    try:
+        limit = model_attempt_limit(answer_budget)
+    except ValueError as exc:
+        raise RuntimeError("Invalid answer limit") from exc
     table = boto3.resource("dynamodb", region_name=region).Table(os.environ["ADVISOR_TABLE_NAME"])
     _sessions = DynamoSessionStore(table)
     _app = WebApp(directory=SyntheticDirectory(), applications=DynamoApplicationStore(table),

@@ -53,6 +53,71 @@ MODEL_ACTION_PROMPT = re.compile(
     r"confirme que deseja)\b|\b(?:quedar[aá]|ficar[aá])\s+registrad[oa]",
     re.IGNORECASE,
 )
+INTENTS = {"PUBLIC_FACT", "RECOMMEND", "COMPARE", "APPLY", "PRECHECK",
+           "CANCEL_EXISTING", "HUMAN", "END", "CLARIFY"}
+
+
+def _classify_intent(conversation: "Conversation", message: str,
+                     before_model_call: Callable[[], None] | None = None) -> dict | None:
+    """Classify a fresh turn without sending fixture or policy fields."""
+    key = os.environ.get("ANTHROPIC_API_KEY")
+    if not key:
+        return None
+    schema = {"type": "object", "properties": {
+        "intent": {"type": "string", "enum": sorted(INTENTS)},
+        "card": {"type": "string", "enum": ["", "CURRENT", "AMBIGUOUS", *CARD_NAMES]},
+        "lower_annual_fee": {"type": "boolean"},
+        "no_annual_fee": {"type": "boolean"},
+        "travel_required": {"type": "boolean"},
+        "skip_precheck": {"type": "boolean"},
+    }, "required": ["intent", "card", "lower_annual_fee", "no_annual_fee",
+                    "travel_required", "skip_precheck"], "additionalProperties": False}
+    system = (
+        "Classify the customer's latest message in a Spanish/Portuguese credit-card chat. "
+        "Choose the customer's intended next step, not a keyword match. Handle spelling mistakes, "
+        "negation, and mixed languages. PUBLIC_FACT covers benefits, fees, conditions, cancellation "
+        "terms, how to apply, and multi-part product questions. RECOMMEND means a personal card "
+        "suggestion using the selected profile. COMPARE means comparing cards or seeking a cheaper "
+        "alternative. APPLY requires a direct wish to request/get a card now; a hypothetical question "
+        "or 'I do not want to apply' is PUBLIC_FACT. PRECHECK requests an initial eligibility check "
+        "without requesting an application. CANCEL_EXISTING asks to cancel a card already held, "
+        "not whether cancellation is allowed. HUMAN directly asks for a person. END closes chat. "
+        "CLARIFY means the message has no clear standalone intent. Never treat an acknowledgement "
+        "as consent. card is CURRENT for 'this card' or the actively discussed card, a named card "
+        "when directly requested, AMBIGUOUS for multiple possible cards or a request for an unnamed "
+        "different card, or empty when no card is known. Never map an unnamed different card to "
+        "CURRENT. For COMPARE, card is the price/reference card when one is specified. Only set "
+        "lower_annual_fee, no_annual_fee, or travel_required when requested. Set skip_precheck only "
+        "for an explicit request to apply without an initial check. Return no prose."
+    )
+    context = json.dumps({"language": conversation.language, "country": conversation.country,
+                          "selected_card": conversation.selected_card,
+                          "recent_public_turns": conversation.turns[-4:],
+                          "latest_message": message}, ensure_ascii=False)
+    payload = {"model": "claude-haiku-4-5-20251001", "max_tokens": 250,
+               "system": system, "messages": [{"role": "user", "content": context}],
+               "output_config": {"format": {"type": "json_schema", "schema": schema}}}
+    headers = {"Content-Type": "application/json", "anthropic-version": "2023-06-01",
+               "Authorization": f"Bearer {key}"}
+    if os.environ.get("ANTHROPIC_WORKSPACE_ID"):
+        headers["anthropic-workspace-id"] = os.environ["ANTHROPIC_WORKSPACE_ID"]
+    if before_model_call is not None:
+        before_model_call()
+    request = Request("https://api.anthropic.com/v1/messages", json.dumps(payload).encode(),
+                      headers=headers, method="POST")
+    try:
+        with urlopen(request, timeout=20) as response:
+            raw = json.load(response)
+        result = json.loads("".join(b["text"] for b in raw.get("content", []) if b.get("type") == "text"))
+    except (HTTPError, URLError, TimeoutError, ValueError, KeyError) as exc:
+        raise RuntimeError(f"Intent model unavailable ({type(exc).__name__})") from None
+    if (not isinstance(result, dict) or set(result) != set(schema["properties"])
+            or result["intent"] not in INTENTS
+            or result["card"] not in {"", "CURRENT", "AMBIGUOUS", *CARD_NAMES}
+            or any(not isinstance(result[key], bool) for key in (
+                "lower_annual_fee", "no_annual_fee", "travel_required", "skip_precheck"))):
+        raise RuntimeError("Invalid intent model response")
+    return result
 
 
 def public_facts() -> list[tuple[str, str]]:
@@ -431,16 +496,6 @@ def respond(conversation: Conversation, message: str,
     mentioned_cards = [card for card in CARD_NAMES if re.search(rf"\b{card.casefold()}\b", lower)]
     if len(mentioned_cards) == 1:
         conversation.selected_card = mentioned_cards[0]
-    if requests_card_cancellation(message):
-        answer = ("Este chat atende informações e solicitações de novos cartões. Não consigo cancelar um cartão "
-                  "existente por aqui; procure o atendimento do banco para fazer esse pedido. "
-                  "Nenhum cancelamento foi iniciado."
-                  if conversation.language == "pt" else
-                  "Este chat atiende información y solicitudes de tarjetas nuevas. No puedo cancelar una tarjeta "
-                  "existente por aquí; contacta al servicio del banco para solicitarlo. "
-                  "No se inició ninguna cancelación.")
-        return {"answer": answer, "citations": ["TERM.CANCELLATION"],
-                "route": "SERVICE_BOUNDARY", "fact_version": FACT_VERSION}
     if PRIVATE_INPUT.search(message):
         return {"answer": _boundary(message, conversation.language), "citations": [],
                 "route": "SERVICE_BOUNDARY", "fact_version": FACT_VERSION}
@@ -513,10 +568,69 @@ def respond(conversation: Conversation, message: str,
                   "cobertura; solicita revisión humana antes de reservar.")
         return {"answer": answer, "citations": ["TRAVEL.RULES", "UNKNOWN.TRAVEL"],
                 "route": "SERVICE_BOUNDARY", "fact_version": FACT_VERSION}
-    product_intent = classify_product_intent(message, conversation.selected_card, tuple(mentioned_cards))
+    try:
+        semantic = _classify_intent(conversation, message, before_model_call)
+    except RuntimeError:
+        if os.environ.get("ANTHROPIC_API_KEY"):
+            answer = ("Não consigo interpretar seu pedido com segurança agora. Tente novamente mais tarde."
+                      if conversation.language == "pt" else
+                      "No puedo interpretar tu pedido con seguridad ahora. Inténtalo más tarde.")
+            return {"answer": answer, "citations": [], "route": "FALLBACK",
+                    "fact_version": FACT_VERSION}
+        semantic = None  # Offline CLI keeps its legacy local router.
+    if semantic and semantic["card"] in CARD_NAMES and semantic["intent"] != "COMPARE":
+        conversation.selected_card = semantic["card"]
+    if (semantic and semantic["intent"] == "CANCEL_EXISTING") or (
+            semantic is None and requests_card_cancellation(message)):
+        answer = ("Este chat atende informações e solicitações de novos cartões. Não consigo cancelar um cartão "
+                  "existente por aqui; procure o atendimento do banco para fazer esse pedido. "
+                  "Nenhum cancelamento foi iniciado."
+                  if conversation.language == "pt" else
+                  "Este chat atiende información y solicitudes de tarjetas nuevas. No puedo cancelar una tarjeta "
+                  "existente por aquí; contacta al servicio del banco para solicitarlo. "
+                  "No se inició ninguna cancelación.")
+        return {"answer": answer, "citations": ["TERM.CANCELLATION"],
+                "route": "SERVICE_BOUNDARY", "fact_version": FACT_VERSION}
+    if semantic and semantic["intent"] == "HUMAN":
+        answer = ("Posso registrar um pedido para um especialista revisar sua pergunta."
+                  if conversation.language == "pt" else
+                  "Puedo registrar una solicitud para que un especialista revise tu pregunta.")
+        return {"answer": answer, "citations": [], "route": "SERVICE_BOUNDARY",
+                "unresolved": True, "fact_version": FACT_VERSION}
+    if semantic and semantic["intent"] == "END":
+        conversation.stopped = True
+        if directory is not None:
+            directory.close_session(conversation.demo_token)
+        conversation.demo_alias = None
+        conversation.demo_token = None
+        conversation.profile_permission = False
+        conversation.precheck_consent_card = None
+        answer = "Conversa encerrada." if conversation.language == "pt" else "Conversación terminada."
+        return {"answer": answer, "citations": [], "route": "STOP", "fact_version": FACT_VERSION}
+    if semantic and semantic["intent"] == "CLARIFY":
+        answer = ("Você quer saber sobre um cartão, comparar opções ou solicitar um cartão?"
+                  if conversation.language == "pt" else
+                  "¿Quieres información sobre una tarjeta, comparar opciones o solicitar una tarjeta?")
+        return {"answer": answer, "citations": [], "route": "CLARIFY", "fact_version": FACT_VERSION}
+    if semantic and semantic["intent"] == "RECOMMEND":
+        product_intent = ProductIntent("PROFILE_RECOMMENDATION")
+    elif semantic and semantic["intent"] == "COMPARE":
+        reference = semantic["card"] if semantic["card"] in CARD_NAMES else conversation.selected_card
+        if semantic["card"] == "AMBIGUOUS":
+            product_intent = ProductIntent()
+        else:
+            conversation.selected_card = reference
+            product_intent = ProductIntent(
+                "CATALOG_COMPARISON", lower_cost=semantic["lower_annual_fee"],
+                require_travel_benefits=semantic["travel_required"],
+                no_annual_fee=semantic["no_annual_fee"], exclude_current=True)
+    elif semantic:
+        product_intent = ProductIntent()
+    else:
+        product_intent = classify_product_intent(message, conversation.selected_card, tuple(mentioned_cards))
     if product_intent.kind == "CATALOG_COMPARISON":
         result = _alternative_cards(conversation, message, product_intent)
-        if len(mentioned_cards) == 1:
+        if len(mentioned_cards) == 1 or semantic is not None:
             # A named comparison reference does not select that card for later turns.
             conversation.selected_card = previous_card
         return result
@@ -572,7 +686,7 @@ def respond(conversation: Conversation, message: str,
                                    {"role": "assistant", "text": answer}])
         return {"answer": answer, "citations": ["ACCESS.PRECHECK", "ACCESS.APPLICATION"],
                 "route": "ANSWER_FACT", "card": card, "fact_version": FACT_VERSION}
-    application_intent = bool(re.search(
+    lexical_application_intent = bool(re.search(
         r"\b(?:adquirir|adquiri-lo|adquiri-la|adquiri[r]?lo|solicitar|solicitud|contratar|"
         r"obter|pedir|aplicar|apply|consigo|conseguir|contrato)\b", lower)) or any(
         phrase in lower for phrase in ("como faço para ter", "cómo hago para tener", "quero esse cartão",
@@ -585,19 +699,23 @@ def respond(conversation: Conversation, message: str,
         lower))
     # Questions about ending a card can contain words such as "solicitar" or
     # "contrato". They ask for public terms, not an application/precheck.
-    if _asks_about_cancellation(message):
-        application_intent = False
-    if conversation.demo_alias and conversation.selected_card and lower in {"quero", "quiero", "i want it"}:
+    application_intent = (semantic["intent"] == "APPLY" if semantic is not None else
+                          lexical_application_intent and not _asks_about_cancellation(message))
+    if (semantic is None and conversation.demo_alias and conversation.selected_card
+            and lower in {"quero", "quiero", "i want it"}):
         card = conversation.selected_card
         answer = (f"Você quer solicitar o {card} ou prefere saber mais sobre ele?"
                   if conversation.language == "pt" else
                   f"¿Quieres solicitar {card} o prefieres saber más sobre la tarjeta?")
         return {"answer": answer, "citations": [], "route": "ASK_APPLICATION_INTENT",
                 "card": card, "fact_version": FACT_VERSION}
-    skip_precheck = bool(re.search(
-        r"\b(?:sin|sem)\s+(?:(?:la|el|a|o)\s+)?(?:evaluaci[oó]n|avalia[cç][aã]o|precheck)", lower))
-    if conversation.demo_alias and application_intent and skip_precheck and len(mentioned_cards) < 2:
-        if conversation.selected_card is None:
+    skip_precheck = (semantic["skip_precheck"] if semantic is not None else bool(re.search(
+        r"\b(?:sin|sem)\s+(?:(?:la|el|a|o)\s+)?(?:evaluaci[oó]n|avalia[cç][aã]o|precheck)", lower)))
+    action_card = (None if len(mentioned_cards) >= 2 or (
+        semantic is not None and semantic["card"] in {"", "AMBIGUOUS"})
+                   else conversation.selected_card)
+    if conversation.demo_alias and application_intent and skip_precheck:
+        if action_card is None:
             answer = ("Qual cartão você quer solicitar sem avaliação inicial?" if conversation.language == "pt" else
                       "¿Qué tarjeta quieres solicitar sin evaluación inicial?")
             return {"answer": answer, "citations": [], "route": "ASK_CARD",
@@ -606,9 +724,11 @@ def respond(conversation: Conversation, message: str,
                            if conversation.language == "pt" else
                            "Se omitirá la evaluación inicial; la solicitud todavía requiere confirmación separada."),
                 "citations": [], "route": "SKIP_PRECHECK",
-                "card": conversation.selected_card, "fact_version": FACT_VERSION}
-    if conversation.demo_alias and (application_intent or any(cue in lower for cue in precheck_cues)):
-        card = conversation.selected_card if len(mentioned_cards) < 2 else None
+                "card": action_card, "fact_version": FACT_VERSION}
+    precheck_request = (semantic["intent"] == "PRECHECK" if semantic is not None else
+                        any(cue in lower for cue in precheck_cues))
+    if conversation.demo_alias and (application_intent or precheck_request):
+        card = action_card
         if card is None:
             answer = ("Claro. Qual cartão você gostaria de avaliar: Campus, Horizon, Rewards ou Summit?"
                       if conversation.language == "pt" else "Claro. ¿Qué tarjeta te gustaría evaluar: Campus, Horizon, Rewards o Summit?")
@@ -645,11 +765,12 @@ def respond(conversation: Conversation, message: str,
                                    {"role": "assistant", "text": answer}])
         return {"answer": answer, "citations": ["BENEFIT.REWARDS", "BENEFIT.SUMMIT", "TRAVEL.RULES"],
                 "route": "CLARIFY", "fact_version": FACT_VERSION}
-    boundary = _boundary(message, conversation.language)
+    cash_advance = any(term in lower for term in (
+        "adelanto de efectivo", "avance de efectivo", "saque em dinheiro",
+        "adiantamento em dinheiro", "cash advance"))
+    boundary = (_boundary(message, conversation.language)
+                if semantic is None or cash_advance else None)
     if boundary:
-        cash_advance = any(term in lower for term in (
-            "adelanto de efectivo", "avance de efectivo", "saque em dinheiro",
-            "adiantamento em dinheiro", "cash advance"))
         return {"answer": boundary, "citations": ["UNKNOWN.COST"] if cash_advance else [],
                 "route": "SERVICE_BOUNDARY", "fact_version": FACT_VERSION}
     # The first partial-cycle waiver is an exact catalog rule. Answer directly
@@ -855,7 +976,7 @@ def respond(conversation: Conversation, message: str,
             if before_model_call is not None:
                 before_model_call()
             result = _generate(system + correction, context, model)
-            if (result.get("application_request") == "REQUEST_CARD" and
+            if (semantic is None and result.get("application_request") == "REQUEST_CARD" and
                     directory is not None and conversation.demo_alias):
                 card = conversation.selected_card if len(mentioned_cards) < 2 else None
                 if card is None:
@@ -870,7 +991,7 @@ def respond(conversation: Conversation, message: str,
                 return {"answer": answer, "citations": [], "route": "ASK_PRECHECK_CONSENT",
                         "card": card, "wants_application": True, "fact_version": FACT_VERSION}
             comparison = result.get("comparison")
-            if (isinstance(comparison, dict) and
+            if (semantic is None and isinstance(comparison, dict) and
                     comparison.get("kind") in {"LOWER_ANNUAL_FEE", "NO_ANNUAL_FEE", "OTHER_CARD"} and
                     len(mentioned_cards) < 2):
                 reference = comparison.get("reference_card")

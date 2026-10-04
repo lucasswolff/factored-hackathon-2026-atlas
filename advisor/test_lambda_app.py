@@ -83,7 +83,10 @@ class LambdaAdapterTest(unittest.TestCase):
         self.call("GET", "/")
         self.assertEqual(self.call("POST", "/api/start", {
             "entry": "direct", "country": "Argentina", "language": "es", "alias": "P06"})["statusCode"], 200)
-        first = json.loads(self.call("POST", "/api/chat", {"message": "Quiero solicitar Horizon"})["body"])
+        with patch("advisor.service._classify_intent", return_value={
+                "intent": "APPLY", "card": "Horizon", "lower_annual_fee": False,
+                "no_annual_fee": False, "travel_required": False, "skip_precheck": False}):
+            first = json.loads(self.call("POST", "/api/chat", {"message": "Quiero solicitar Horizon"})["body"])
         self.assertEqual(first["events"][-1]["route"], "ASK_PRECHECK_CONSENT")
         self.call("POST", "/api/chat", {"message": "no"})
         final = json.loads(self.call("POST", "/api/chat", {"message": "sí"})["body"])
@@ -96,7 +99,10 @@ class LambdaAdapterTest(unittest.TestCase):
         self.call("GET", "/")
         self.call("POST", "/api/start", {
             "entry": "direct", "country": "Argentina", "language": "es", "alias": "P06"})
-        with patch("advisor.lambda_app._emit") as emit:
+        with patch("advisor.lambda_app._emit") as emit, patch(
+                "advisor.service._classify_intent", return_value={
+                    "intent": "APPLY", "card": "Horizon", "lower_annual_fee": False,
+                    "no_annual_fee": False, "travel_required": False, "skip_precheck": False}):
             response = self.call("POST", "/api/chat", {"message": "Quiero solicitar Horizon"})
         self.assertEqual(response["statusCode"], 200)
         report = emit.call_args.args[0]
@@ -123,7 +129,10 @@ class LambdaAdapterTest(unittest.TestCase):
         self.call("POST", "/api/start", {
             "entry": "offer", "selected_card": "Rewards", "country": "México",
             "language": "es", "alias": "P05"})
-        with patch("advisor.service._generate", side_effect=RuntimeError("provider offline")) as model:
+        with patch("advisor.service._classify_intent", return_value={
+                "intent": "PUBLIC_FACT", "card": "Rewards", "lower_annual_fee": False,
+                "no_annual_fee": False, "travel_required": False, "skip_precheck": False}), patch(
+                "advisor.service._generate", side_effect=RuntimeError("provider offline")) as model:
             response = self.call("POST", "/api/chat", {"message": "¿Qué beneficios tiene Rewards?"})
         self.assertEqual(response["statusCode"], 200)
         state = json.loads(response["body"])
@@ -133,6 +142,19 @@ class LambdaAdapterTest(unittest.TestCase):
         self.assertEqual(model.call_count, 1)
         self.assertEqual(sum(item.get("used", 0) for (pk, _), item in self.table.items.items()
                              if pk.startswith("QUOTA#")), 1)
+
+    def test_intent_model_outage_does_not_start_application(self):
+        self.call("GET", "/")
+        self.call("POST", "/api/start", {"entry": "direct", "country": "México",
+                                           "language": "es", "alias": "P05"})
+        with patch("advisor.service._classify_intent", side_effect=RuntimeError("provider offline")), patch(
+                "advisor.service._generate") as answer_model:
+            response = self.call("POST", "/api/chat", {"message": "Quiero solicitar Horizon"})
+        state = json.loads(response["body"])
+        self.assertEqual(state["events"][-1]["route"], "FALLBACK")
+        self.assertIsNone(state["application"])
+        self.assertIsNone(state["pending_action"])
+        answer_model.assert_not_called()
 
     def test_failed_application_write_can_retry_same_confirmation(self):
         token = self._start_application()

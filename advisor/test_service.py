@@ -4,11 +4,104 @@ import io
 import json
 import os
 
-from advisor.service import Conversation, _generate, respond
+from advisor.service import Conversation, _classify_intent, _generate, respond
+from advisor.synthetic_data import SyntheticDirectory
+from advisor.session import grant_profile_permission, select_demo_persona
 from advisor.product_routing import classify_product_intent
 
 
 class ConversationTests(unittest.TestCase):
+    def test_model_first_intent_overrides_brittle_application_words(self):
+        directory = SyntheticDirectory()
+        for intent, message, expected_route in (
+                ("PUBLIC_FACT", "No quiero solicitar esta tarjeta", "ANSWER_FACT"),
+                ("PUBLIC_FACT", "¿Cómo solicito esta tarjeta?", "ANSWER_FACT"),
+                ("APPLY", "queiro esta", "ASK_PRECHECK_CONSENT"),
+                ("APPLY", "Me gustaría quedarme con esta", "ASK_PRECHECK_CONSENT")):
+            with self.subTest(message=message):
+                chat = Conversation.start("es", "México", selected_card="Horizon")
+                select_demo_persona(chat, directory, "P05")
+                grant_profile_permission(chat)
+                classified = {"intent": intent, "card": "CURRENT", "lower_annual_fee": False,
+                              "no_annual_fee": False, "travel_required": False,
+                              "skip_precheck": False}
+                with patch("advisor.service._classify_intent", return_value=classified), patch(
+                        "advisor.service._generate", return_value={
+                            "answer": "Puedo explicar las condiciones de Horizon.",
+                            "citations": ["BENEFIT.HORIZON"], "unresolved": False,
+                            "application_request": "NONE",
+                            "comparison": {"kind": "NONE", "reference_card": "",
+                                           "requires_travel_benefits": False}}) as answer_model:
+                    result = respond(chat, message, directory=directory)
+                self.assertEqual(result["route"], expected_route)
+                if intent == "APPLY":
+                    self.assertEqual(result["card"], "Horizon")
+                    answer_model.assert_not_called()
+
+    def test_model_first_profile_and_comparison_stay_service_owned(self):
+        directory = SyntheticDirectory()
+        chat = Conversation.start("pt", "México", selected_card="Horizon")
+        select_demo_persona(chat, directory, "P05")
+        grant_profile_permission(chat)
+        base = {"card": "CURRENT", "lower_annual_fee": False,
+                "no_annual_fee": False, "travel_required": False, "skip_precheck": False}
+        with patch("advisor.service._classify_intent", return_value={**base, "intent": "RECOMMEND"}), patch(
+                "advisor.service._generate") as answer_model:
+            result = respond(chat, "Qual cartão combina com meu perfil?", directory=directory)
+        self.assertEqual(result["route"], "POLICY_SUGGESTION")
+        self.assertEqual(result["policy"].card, "Horizon")
+        answer_model.assert_not_called()
+        chat.selected_card = "Summit"
+        with patch("advisor.service._classify_intent", return_value={
+                **base, "intent": "COMPARE", "card": "Summit", "lower_annual_fee": True}), patch(
+                "advisor.service._generate") as answer_model:
+            result = respond(chat, "um mais barato que o Summit", directory=directory)
+        self.assertEqual(result["route"], "ANSWER_FACT")
+        self.assertIn("Rewards", result["answer"])
+        self.assertEqual(chat.selected_card, "Summit")
+        answer_model.assert_not_called()
+
+    def test_model_first_unnamed_other_card_requires_choice(self):
+        directory = SyntheticDirectory()
+        chat = Conversation.start("es", "México", selected_card="Rewards")
+        select_demo_persona(chat, directory, "P05")
+        grant_profile_permission(chat)
+        with patch("advisor.service._classify_intent", return_value={
+                "intent": "APPLY", "card": "AMBIGUOUS", "lower_annual_fee": False,
+                "no_annual_fee": False, "travel_required": False,
+                "skip_precheck": False}), patch("advisor.service._generate") as answer_model:
+            result = respond(chat, "Quiero solicitar otra tarjeta", directory=directory)
+        self.assertEqual(result["route"], "ASK_CARD")
+        self.assertTrue(result["wants_application"])
+        self.assertEqual(chat.selected_card, "Rewards")
+        answer_model.assert_not_called()
+
+    def test_intent_request_excludes_profile_values_and_uses_typed_choices(self):
+        directory = SyntheticDirectory()
+        chat = Conversation.start("es", "México", selected_card="Horizon")
+        select_demo_persona(chat, directory, "P08")
+        grant_profile_permission(chat)
+        profile = directory.read_profile(chat.demo_token, True)
+        decision = {"intent": "APPLY", "card": "CURRENT", "lower_annual_fee": False,
+                    "no_annual_fee": False, "travel_required": False, "skip_precheck": False}
+        wire = {"content": [{"type": "text", "text": json.dumps(decision)}]}
+        class Response(io.BytesIO):
+            def __enter__(self):
+                return self
+            def __exit__(self, *_args):
+                self.close()
+        with patch.dict(os.environ, {"ANTHROPIC_API_KEY": "test-only"}), patch(
+                "advisor.service.urlopen", side_effect=lambda *_a, **_kw: Response(json.dumps(wire).encode())) as opened:
+            result = _classify_intent(chat, "queiro esta")
+        self.assertEqual(result["intent"], "APPLY")
+        payload = json.loads(opened.call_args.args[0].data)
+        self.assertEqual(payload["model"], "claude-haiku-4-5-20251001")
+        self.assertIn("APPLY", payload["output_config"]["format"]["schema"]["properties"]["intent"]["enum"])
+        context = payload["messages"][0]["content"]
+        self.assertNotIn("P08", context)
+        self.assertNotIn(str(profile.score), context)
+        self.assertNotIn(str(profile.monthly_income), context)
+
     def test_product_intent_routes_preferences_without_starting_actions(self):
         examples = (
             ("Qual cartão você me recomenda?", "PROFILE_RECOMMENDATION", False),

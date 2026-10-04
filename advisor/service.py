@@ -48,6 +48,11 @@ UNVERIFIED_ACTION = re.compile(
     r"\b(?:cart[aã]o|tarjeta)\s+(?:foi|fue|est[aá])\s+cancelad[oa]",
     re.IGNORECASE,
 )
+MODEL_ACTION_PROMPT = re.compile(
+    r"\b(?:conf[ií]rmame|dime que confirmas|diga que confirma|confirme que deseas|"
+    r"confirme que deseja)\b|\b(?:quedar[aá]|ficar[aá])\s+registrad[oa]",
+    re.IGNORECASE,
+)
 
 
 def public_facts() -> list[tuple[str, str]]:
@@ -358,13 +363,15 @@ def _generate(system: str, user: str, model: str) -> dict:
     schema = {"type": "object", "properties": {
         "answer": {"type": "string"}, "citations": {"type": "array", "items": {"type": "string"}},
         "unresolved": {"type": "boolean"},
+        "application_request": {"type": "string", "enum": ["NONE", "REQUEST_CARD"]},
         "comparison": {"type": "object", "properties": {
             "kind": {"type": "string", "enum": ["NONE", "LOWER_ANNUAL_FEE", "NO_ANNUAL_FEE", "OTHER_CARD"]},
             "reference_card": {"type": "string", "enum": ["", *CARD_NAMES]},
             "requires_travel_benefits": {"type": "boolean"}},
             "required": ["kind", "reference_card", "requires_travel_benefits"],
             "additionalProperties": False}},
-        "required": ["answer", "citations", "unresolved", "comparison"], "additionalProperties": False}
+        "required": ["answer", "citations", "unresolved", "application_request", "comparison"],
+        "additionalProperties": False}
     payload = {"model": model, "max_tokens": 900, "system": system,
                "messages": [{"role": "user", "content": user}],
                "output_config": {"format": {"type": "json_schema", "schema": schema}}}
@@ -384,8 +391,9 @@ def _generate(system: str, user: str, model: str) -> dict:
     content = "".join(b["text"] for b in raw.get("content", []) if b.get("type") == "text")
     result = json.loads(content)
     comparison = result.get("comparison") if isinstance(result, dict) else None
-    if (not isinstance(result, dict) or set(result) != {"answer", "citations", "unresolved", "comparison"}
+    if (not isinstance(result, dict) or set(result) != {"answer", "citations", "unresolved", "application_request", "comparison"}
             or not isinstance(result["unresolved"], bool)
+            or result["application_request"] not in {"NONE", "REQUEST_CARD"}
             or not isinstance(comparison, dict)
             or set(comparison) != {"kind", "reference_card", "requires_travel_benefits"}
             or comparison["kind"] not in {"NONE", "LOWER_ANNUAL_FEE", "NO_ANNUAL_FEE", "OTHER_CARD"}
@@ -780,6 +788,9 @@ def respond(conversation: Conversation, message: str,
         "and cite supporting fact IDs. Do not describe internal development or testing. "
         "Speak naturally to a customer. Never refer to a catalog, version, draft, internal source, or testing. "
         "The comparison field interprets the latest customer question, not your answer. "
+        "Set application_request to REQUEST_CARD only when the latest customer message directly says they want to get or apply for a card, including ordinary spelling mistakes and mixed Spanish/Portuguese. "
+        "Set it to NONE for benefit, fee, eligibility, or process questions, and for ambiguous acknowledgements. "
+        "The host service, not you, handles any request and all confirmations. "
         "Set LOWER_ANNUAL_FEE for a request for another card with a lower recurring card fee or a cheaper card; "
         "set NO_ANNUAL_FEE for another card with no annual fee; set OTHER_CARD for another option without a price condition. "
         "Use NONE for benefit details, interest-rate questions, total borrowing cost, eligibility, applications, and ordinary factual questions. "
@@ -844,6 +855,20 @@ def respond(conversation: Conversation, message: str,
             if before_model_call is not None:
                 before_model_call()
             result = _generate(system + correction, context, model)
+            if (result.get("application_request") == "REQUEST_CARD" and
+                    directory is not None and conversation.demo_alias):
+                card = conversation.selected_card if len(mentioned_cards) < 2 else None
+                if card is None:
+                    answer = ("Qual cartão você quer solicitar: Campus, Horizon, Rewards ou Summit?"
+                              if conversation.language == "pt" else
+                              "¿Qué tarjeta quieres solicitar: Campus, Horizon, Rewards o Summit?")
+                    return {"answer": answer, "citations": [], "route": "ASK_CARD",
+                            "wants_application": True, "fact_version": FACT_VERSION}
+                answer = (f"Para seguir com o {card}, posso fazer uma avaliação inicial usando seu perfil?"
+                          if conversation.language == "pt" else
+                          f"Para seguir con {card}, ¿puedo hacer una evaluación inicial usando tu perfil?")
+                return {"answer": answer, "citations": [], "route": "ASK_PRECHECK_CONSENT",
+                        "card": card, "wants_application": True, "fact_version": FACT_VERSION}
             comparison = result.get("comparison")
             if (isinstance(comparison, dict) and
                     comparison.get("kind") in {"LOWER_ANNUAL_FEE", "NO_ANNUAL_FEE", "OTHER_CARD"} and
@@ -876,7 +901,7 @@ def respond(conversation: Conversation, message: str,
                 raise RuntimeError("Invalid model answer or citation")
             answer, citations, route = result["answer"].strip(), result["citations"], "ANSWER_FACT"
             unresolved = result.get("unresolved", False)
-            action_retry = bool(UNVERIFIED_ACTION.search(answer))
+            action_retry = bool(UNVERIFIED_ACTION.search(answer) or MODEL_ACTION_PROMPT.search(answer))
             fee_retry = (selected_card_benefits and asks_fee and
                          not {f"BENEFIT.{conversation.selected_card.upper()}", fee_id}.issubset(citations))
             if fee_amounts is not None and re.search(rf"\b{currency}\s*[\d]", message):

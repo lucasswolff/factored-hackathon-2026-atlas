@@ -404,6 +404,38 @@ class HostedTest(unittest.TestCase):
                         "message": "¿Y Rewards?" if language == "es" else "E o Rewards?"})
                 self.assertEqual(state["conversation"]["selected_card"], "Rewards")
 
+    def test_misspelled_application_request_uses_server_confirmations(self):
+        self.cookie = None
+        self.judge("GET", "/")
+        self.judge("POST", "/api/start", {"entry": "campaign",
+                                           "campaign_id": "CMP-NM2UHJMKPA0C",
+                                           "country": "Colombia", "language": "es", "alias": "P04"})
+        self.judge("POST", "/api/chat", {"message": "Soy estudiante, ¿qué tarjeta me recomiendas?"})
+        self.assertEqual(self.app.sessions[self.cookie.split("=", 1)[1]].chat.selected_card, "Horizon")
+        model_request = {"answer": "Confírmame y quedará registrada tu solicitud.",
+                         "citations": ["CATALOG.IDENTITY"], "unresolved": False,
+                         "application_request": "REQUEST_CARD",
+                         "comparison": {"kind": "NONE", "reference_card": "",
+                                        "requires_travel_benefits": False}}
+        with patch.object(self.app, "_consume_model_attempt"), patch(
+                "advisor.service._generate", return_value=model_request) as model:
+            status, state, _ = self.judge("POST", "/api/chat", {"message": "queiro esta"})
+        self.assertEqual(status, 200)
+        self.assertEqual(state["events"][-1]["route"], "ASK_PRECHECK_CONSENT")
+        self.assertEqual(state["pending_action"]["card"], "Horizon")
+        self.assertEqual(state["pending_action"]["kind"], "precheck_choice")
+        self.assertNotIn("quedará registrada", state["events"][-1]["text"])
+        self.assertIsNone(state["application"])
+        model.assert_called_once()
+
+        _, state, _ = self.judge("POST", "/api/chat", {"message": "si"})
+        self.assertEqual(state["events"][-1]["route"], "APPLICATION_CONFIRM")
+        self.assertIsNone(state["application"])
+        _, state, _ = self.judge("POST", "/api/chat", {"message": "si"})
+        self.assertEqual(state["events"][-1]["route"], "APPLICATION_RECORDED")
+        self.assertEqual(state["application"]["card"], "Horizon")
+        self.assertEqual(state["application"]["status"], "PENDING_REVIEW")
+
     def test_cancellation_request_does_not_open_a_cancellation_workflow(self):
         self.judge("GET", "/")
         self.judge("POST", "/api/start", {"entry": "direct", "country": "México",

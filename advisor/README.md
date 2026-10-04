@@ -34,9 +34,12 @@ request to compare other cards. Comparisons filter the selected country's
 versioned fee terms and relevant benefits using the currently discussed card
 and any stated lower-cost or lounge preference; they do not rerun the single
 top-card profile suggestion or imply eligibility. An explicit request to apply
-for an unnamed different card asks which card first. Wording that the local
-router does not recognize remains a public model question, and the router still
-needs independent bilingual paraphrase evaluation.
+for an unnamed different card asks which card first. When the local router
+misses an explicit application request, Claude can label that intent in a
+structured field; the host then starts its own consent flow and discards the
+model's action wording. The model cannot grant consent, create an application,
+or confirm a stored result. The router and model classifier still need
+independent bilingual paraphrase evaluation.
 "Best card for me" questions use the selected demo fixture's profile. The
 service reads it after persona selection and applies the synthetic policy
 locally; these answers do not call Claude or send score, income, or policy

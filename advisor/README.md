@@ -37,7 +37,12 @@ top-card profile suggestion or imply eligibility. An explicit request to apply
 for an unnamed different card asks which card first. Wording that the local
 router does not recognize remains a public model question, and the router still
 needs independent bilingual paraphrase evaluation.
-"Best card for me" questions use the selected demo fixture's profile; when a
+"Best card for me" questions use the selected demo fixture's profile. The
+service reads it after persona selection and applies the synthetic policy
+locally; these answers do not call Claude or send score, income, or policy
+outputs to it. A no-suggestion answer identifies the selected fixture and
+states the relevant rule, including the score threshold when that is the
+reason. This is a conversation suggestion, not a credit decision. When a
 visitor says they have no income but the fixture has a positive estimate, the
 answer calls out that difference. An acknowledgement after no automatic
 suggestion opens a general card overview. Requests to cancel an existing card

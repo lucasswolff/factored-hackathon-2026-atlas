@@ -328,11 +328,34 @@ class HostedTest(unittest.TestCase):
             _, state, _ = self.judge("POST", "/api/chat", {"message": "que cartao voce me recomenda?"})
             self.assertEqual(state["events"][-1]["route"], "POLICY_SUGGESTION")
             self.assertIn("Não há sugestão automática", state["events"][-1]["text"])
+            self.assertIn("perfil de demonstração selecionado (P04)", state["events"][-1]["text"])
+            self.assertIn("550", state["events"][-1]["text"])
+            self.assertIn("560", state["events"][-1]["text"])
+            self.assertIn("não é uma recusa de crédito", state["events"][-1]["text"])
             _, state, _ = self.judge("POST", "/api/chat", {"message": "ok"})
         self.assertEqual(state["events"][-1]["route"], "ANSWER_FACT")
         self.assertIn("Campus", state["events"][-1]["text"])
         self.assertIsNone(state["pending_action"])
         model.assert_not_called()
+
+    def test_other_no_suggestion_reasons_use_the_selected_persona(self):
+        for alias, country, language, reason in (
+                ("P10", "México", "es", "tarjeta de crédito actual"),
+                ("P04", "Colombia", "es", "puntaje estimado de este perfil es 550")):
+            with self.subTest(alias=alias):
+                self.cookie = None
+                self.judge("GET", "/")
+                self.judge("POST", "/api/start", {"entry": "direct", "country": country,
+                                                   "language": language, "alias": alias})
+                with patch("advisor.service._generate") as model:
+                    _, state, _ = self.judge("POST", "/api/chat", {
+                        "message": "¿Qué tarjeta me recomiendas?" if language == "es" else
+                                   "Qual cartão você me recomenda?"})
+                answer = state["events"][-1]["text"]
+                self.assertEqual(state["events"][-1]["route"], "POLICY_SUGGESTION")
+                self.assertIn(f"({alias})", answer)
+                self.assertIn(reason, answer)
+                model.assert_not_called()
 
     def test_cancellation_request_does_not_open_a_cancellation_workflow(self):
         self.judge("GET", "/")

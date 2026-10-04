@@ -42,6 +42,11 @@ discuss Horizon. Missing income/score, active/blocked/suspended credit-card
 holdings, or a mismatched high-income/low-score profile yields no automatic
 suggestion. This is a conversation suggestion, **not** a precheck result.
 `Student` is not proof of current enrollment.
+The customer-facing response names the selected demo persona and explains a
+no-suggestion reason. A non-student score below the Horizon suggestion floor
+is reported with that floor; a score/income mismatch is reported as a band
+mismatch. The selected profile and policy decision stay in the service and are
+not sent to the conversation model.
 
 For a consented precheck, the service checks active customer status, current
 credit-card holding, card-specific student status, missing values, and the

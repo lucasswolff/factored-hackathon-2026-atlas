@@ -18,7 +18,7 @@ from urllib.request import Request, urlopen
 from .product_routing import ProductIntent, classify_product_intent, normalize
 
 ROOT = Path(__file__).resolve().parents[1]
-FACT_VERSION = "CONV-FACTS-2026-09-30-v5"
+FACT_VERSION = "CONV-FACTS-2026-10-04-v6"
 CAMPAIGNS = {
     "CMP-YYT37NY1CZS7": ("Campus", "Colombia"),
     "CMP-I5TGQ4SXP4EG": ("Horizon", None),
@@ -43,7 +43,9 @@ UNVERIFIED_ACTION = re.compile(
     r"\b(?:solicita[cç][aã]o|solicitud|pedido|cart[aã]o|tarjeta)\s+(?:foi|fue|est[aá]|qued[oó])\s+(?:aprovad|aprobad|aceitad)|"
     r"\b(?:te|lhe)\s+(?:asign[eé]|atribu[ií])\b|"
     r"\b(?:entrar[aã]o|entraremos|se pondr[aá]n)\s+en?\s+contacto|"
-    r"\b(?:entrar[aã]o|entraremos)\s+em\s+contato",
+    r"\b(?:entrar[aã]o|entraremos)\s+em\s+contato|"
+    r"\b(?:cancelei|cancel[eé]|cancelamos|se ha cancelado)\s+(?:o|a|el|la|tu|seu|sua)?\s*(?:cart[aã]o|tarjeta)|"
+    r"\b(?:cart[aã]o|tarjeta)\s+(?:foi|fue|est[aá])\s+cancelad[oa]",
     re.IGNORECASE,
 )
 
@@ -54,7 +56,7 @@ def public_facts() -> list[tuple[str, str]]:
         raise RuntimeError("Unknown fact-sheet version")
     facts = [(m[1], re.sub(r"[*`]", "", m[2])) for line in raw.splitlines()
              if (m := FACT_ROW.match(line))]
-    if len(facts) != 23 or len({fid for fid, _ in facts}) != len(facts):
+    if len(facts) != 24 or len({fid for fid, _ in facts}) != len(facts):
         raise RuntimeError("Unexpected fact-sheet contract")
     return facts
 
@@ -684,7 +686,7 @@ def respond(conversation: Conversation, message: str,
                           fee_id, "FEE.WAIVER",
                           {"Colombia": "RATE.CO", "México": "RATE.MX", "Argentina": "RATE.AR"}[conversation.country],
                           "CATALOG.IDENTITY", "MILES.HISTORY", "UNKNOWN.COST",
-                          "TRAVEL.RULES", "UNKNOWN.TRAVEL"}
+                          "TRAVEL.RULES", "UNKNOWN.TRAVEL", "TERM.CANCELLATION"}
         if conversation.country == "Argentina":
             selected_facts.add("FEE.AR_REVIEW")
         facts = [(fid, body) for fid, body in facts
@@ -730,6 +732,7 @@ def respond(conversation: Conversation, message: str,
         "Do not decide which alternative qualifies in this field; the host service checks the versioned terms. "
         "If asked for a card with no fees, distinguish no annual fee from purchase interest and any unknown charges; never promise the card has no costs. "
         "A first partial billing cycle has no Rewards/Summit fee installment. For later cycles, do not claim a fee will be charged or waived until the card, completed full cycle, and final posted eligible spending net of refunds are known. "
+        "The listed cards have no minimum commitment period; when asked about fidelity, permanencia, or cancellation, explain the TERM.CANCELLATION fact. Do not claim that you cancelled a card or settled an account. "
         "Do not call a card ideal or guaranteed suitable for a particular customer based only on a Student segment or a chat statement; enrollment is unverified. "
         "Translate 'statement credit' as 'crédito na fatura' in Portuguese or 'abono en el estado de cuenta' in Spanish. "
         "When asked about benefits, lead with the positive features of the requested card; do not list missing features unless asked. "
@@ -774,7 +777,7 @@ def respond(conversation: Conversation, message: str,
             correction = ""
             if attempt:
                 if action_retry:
-                    correction = (" Your previous answer claimed an application, approval, or human assignment. "
+                    correction = (" Your previous answer claimed an application, approval, cancellation, or human assignment. "
                                   "Answer the product question using only the listed facts; do not mention an action or handoff.")
                 elif fee_amount_retry:
                     correction = (" Your previous answer used a local-currency amount that does not belong to "
@@ -834,11 +837,11 @@ def respond(conversation: Conversation, message: str,
                 break
         else:
             if action_retry:
-                answer = ("Posso ajudar com os cartões e com uma avaliação inicial mediante seu consentimento. "
-                          "Nenhuma nova solicitação foi registrada nesta resposta."
+                answer = ("Posso ajudar com os termos dos cartões. "
+                          "Nenhuma nova solicitação foi registrada e nenhum cartão foi cancelado nesta resposta."
                           if conversation.language == "pt" else
-                          "Puedo ayudarte con las tarjetas y una evaluación inicial con tu consentimiento. "
-                          "No se registró ninguna solicitud nueva en esta respuesta.")
+                          "Puedo ayudarte con las condiciones de las tarjetas. "
+                          "No se registró ninguna solicitud nueva ni se canceló una tarjeta en esta respuesta.")
                 route = "SERVICE_BOUNDARY"
             else:
                 answer = ("Não consigo verificar uma resposta completa agora. Pergunte novamente mais tarde."

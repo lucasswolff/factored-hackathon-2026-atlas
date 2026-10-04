@@ -97,6 +97,41 @@ class ConversationTests(unittest.TestCase):
         self.assertEqual(result["route"], "FALLBACK")
         self.assertNotIn("Fake", result["answer"])
 
+    def test_no_commitment_term_reaches_focused_card_questions(self):
+        cases = (
+            ("pt", "México", "Rewards", "Gostei do Rewards: tem fidelidade ou posso cancelar quando quiser?"),
+            ("pt", "Colombia", "Campus", "Preciso manter o Campus por um período mínimo?"),
+            ("es", "Argentina", "Summit", "¿Puedo dar de baja Summit antes de doce meses?"),
+            ("es", "México", "Horizon", "¿Hay permanencia obligatoria para Horizon?"),
+        )
+        for language, country, card, question in cases:
+            with self.subTest(question=question):
+                chat = Conversation.start(language, country, selected_card=card)
+                answer = ("Pode solicitar o cancelamento a qualquer momento, sem fidelidade nem multa."
+                          if language == "pt" else
+                          "Puedes solicitar la cancelación en cualquier momento, sin permanencia ni penalización.")
+                with patch("advisor.service._generate", return_value={
+                    "answer": answer, "citations": ["TERM.CANCELLATION"], "unresolved": False,
+                }) as generate:
+                    result = respond(chat, question)
+                self.assertEqual(result["route"], "ANSWER_FACT")
+                self.assertEqual(result["citations"], ["TERM.CANCELLATION"])
+                self.assertIn("[TERM.CANCELLATION]", generate.call_args.args[0])
+                self.assertEqual(chat.selected_card, card)
+
+    def test_model_cannot_claim_card_was_cancelled(self):
+        chat = Conversation.start("pt", "México", selected_card="Rewards")
+        with patch("advisor.service._generate", side_effect=[
+            {"answer": "Cancelei seu cartão Rewards.", "citations": ["TERM.CANCELLATION"],
+             "unresolved": False},
+            {"answer": "O Rewards não tem fidelidade; você pode solicitar o cancelamento a qualquer momento.",
+             "citations": ["TERM.CANCELLATION"], "unresolved": False},
+        ]) as model:
+            result = respond(chat, "Posso cancelar o Rewards quando quiser?")
+        self.assertEqual(model.call_count, 2)
+        self.assertEqual(result["route"], "ANSWER_FACT")
+        self.assertIn("pode solicitar", result["answer"])
+
     def test_decline_creates_no_application(self):
         chat = Conversation.start("pt")
         with patch("advisor.service._generate") as generate:

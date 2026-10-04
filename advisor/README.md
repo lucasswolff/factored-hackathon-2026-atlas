@@ -42,7 +42,11 @@ service reads it after persona selection and applies the synthetic policy
 locally; these answers do not call Claude or send score, income, or policy
 outputs to it. A no-suggestion answer identifies the selected fixture and
 states the relevant rule, including the score threshold when that is the
-reason. This is a conversation suggestion, not a credit decision. When a
+reason. If that explanation names Horizon, a subsequent "this card" question
+refers to Horizon even when the visitor entered from another card campaign;
+the no-suggestion result remains unchanged. A claim to be a student is called
+out when the selected fixture does not record the Student segment. This is a
+conversation suggestion, not a credit decision. When a
 visitor says they have no income but the fixture has a positive estimate, the
 answer calls out that difference. An acknowledgement after no automatic
 suggestion opens a general card overview. Requests to cancel an existing card

@@ -127,6 +127,10 @@ def recommendation_for_session(chat: Conversation, directory: DemoDirectory) -> 
     result = suggest(profile)
     if result.status == "SUGGESTED_FOR_DISCUSSION":
         chat.selected_card = result.card
+    elif "score_below_suggestion_band" in result.reasons:
+        # Horizon is the card discussed in this explanation, even though it was
+        # not suggested for this profile. Resolve later "this card" to it.
+        chat.selected_card = "Horizon"
     answer = _format_result(result, chat.language)
     if result.status == "NO_SUGGESTION":
         if chat.language == "pt":
@@ -139,9 +143,13 @@ def recommendation_for_session(chat: Conversation, directory: DemoDirectory) -> 
             if chat.language == "pt":
                 detail = (f" A pontuação estimada deste perfil é {profile.score}; a faixa de sugestão do Horizon "
                           f"começa em {MIN_SCORE['Horizon']}.")
+                suffix = (" Isso não é uma recusa de crédito. Posso explicar os benefícios do Horizon "
+                          "ou registrar um pedido de análise humana.")
             else:
                 detail = (f" El puntaje estimado de este perfil es {profile.score}; la banda de sugerencia de Horizon "
                           f"comienza en {MIN_SCORE['Horizon']}.")
+                suffix = (" Esto no es una denegación de crédito. Puedo explicarte los beneficios de Horizon "
+                          "o registrar una solicitud de revisión humana.")
         else:
             detail = ""
         answer = prefix + answer + detail + suffix

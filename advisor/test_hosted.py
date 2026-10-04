@@ -99,6 +99,27 @@ class HostedTest(unittest.TestCase):
         self.assertEqual(preview["persona"]["source"], "TEAM_GENERATED_DEMO_FIXTURE")
         self.assertNotIn("customer_id", json.dumps(preview))
 
+    def test_campaign_question_about_benefits_and_anualidad_keeps_fee_facts(self):
+        status, _, _ = self.judge("POST", "/api/start", {
+            "entry": "campaign", "campaign_id": "CMP-N3I2U4V7H3KU",
+            "country": "México", "language": "es", "alias": "P08"})
+        self.assertEqual(status, 200)
+        with patch("advisor.service._generate", return_value={
+            "answer": "Summit ofrece millas y 8 visitas a salas VIP. Su anualidad máxima es MXN 6.000, "
+                      "en cuotas mensuales de MXN 500 con exención condicionada.",
+            "citations": ["BENEFIT.SUMMIT", "FEE.MX", "FEE.WAIVER"],
+        }) as model:
+            status, state, _ = self.judge("POST", "/api/chat", {
+                "message": "¿Qué beneficios tiene esta tarjeta y qual la anualidad?"})
+        self.assertEqual(status, 200)
+        self.assertEqual(state["last_result"]["route"], "ANSWER_FACT")
+        self.assertEqual(state["last_result"]["citations"],
+                         ["BENEFIT.SUMMIT", "FEE.MX", "FEE.WAIVER"])
+        system = model.call_args.args[0]
+        self.assertIn("[BENEFIT.SUMMIT]", system)
+        self.assertIn("[FEE.MX]", system)
+        self.assertIn("[FEE.WAIVER]", system)
+
     def test_fixture_binding_expiry_and_origin(self):
         self.judge("GET", "/")
         status, _, _ = self.judge("POST", "/api/start", {

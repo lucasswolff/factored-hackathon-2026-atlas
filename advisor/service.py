@@ -629,7 +629,7 @@ def respond(conversation: Conversation, message: str,
         and (bool(re.search(r"\b(?:benefícios|beneficios|benefits)\b", lower)) or broad_more)
     )
     asks_annual_fee = bool(re.search(
-        r"\b(?:anuidade|anualidade|cuota anual|tarifa anual|annual fee)\b",
+        r"\b(?:anuidade|anualidade|anualidad|cuota anual|tarifa anual|annual fee)\b",
         normalize(message)))
     fee_id = {"Colombia": "FEE.CO", "México": "FEE.MX", "Argentina": "FEE.AR"}[conversation.country]
     simple_benefits = selected_card_benefits and not any(

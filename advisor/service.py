@@ -332,8 +332,14 @@ def _generate(system: str, user: str, model: str) -> dict:
         raise RuntimeError("ANTHROPIC_API_KEY is not set")
     schema = {"type": "object", "properties": {
         "answer": {"type": "string"}, "citations": {"type": "array", "items": {"type": "string"}},
-        "unresolved": {"type": "boolean"}},
-        "required": ["answer", "citations", "unresolved"], "additionalProperties": False}
+        "unresolved": {"type": "boolean"},
+        "comparison": {"type": "object", "properties": {
+            "kind": {"type": "string", "enum": ["NONE", "LOWER_ANNUAL_FEE", "NO_ANNUAL_FEE", "OTHER_CARD"]},
+            "reference_card": {"type": "string", "enum": ["", *CARD_NAMES]},
+            "requires_travel_benefits": {"type": "boolean"}},
+            "required": ["kind", "reference_card", "requires_travel_benefits"],
+            "additionalProperties": False}},
+        "required": ["answer", "citations", "unresolved", "comparison"], "additionalProperties": False}
     payload = {"model": model, "max_tokens": 900, "system": system,
                "messages": [{"role": "user", "content": user}],
                "output_config": {"format": {"type": "json_schema", "schema": schema}}}
@@ -352,8 +358,14 @@ def _generate(system: str, user: str, model: str) -> dict:
         raise RuntimeError(f"Model unavailable ({exc.code if isinstance(exc, HTTPError) else type(exc).__name__})") from None
     content = "".join(b["text"] for b in raw.get("content", []) if b.get("type") == "text")
     result = json.loads(content)
-    if (not isinstance(result, dict) or set(result) != {"answer", "citations", "unresolved"}
-            or not isinstance(result["unresolved"], bool)):
+    comparison = result.get("comparison") if isinstance(result, dict) else None
+    if (not isinstance(result, dict) or set(result) != {"answer", "citations", "unresolved", "comparison"}
+            or not isinstance(result["unresolved"], bool)
+            or not isinstance(comparison, dict)
+            or set(comparison) != {"kind", "reference_card", "requires_travel_benefits"}
+            or comparison["kind"] not in {"NONE", "LOWER_ANNUAL_FEE", "NO_ANNUAL_FEE", "OTHER_CARD"}
+            or comparison["reference_card"] not in {"", *CARD_NAMES}
+            or not isinstance(comparison["requires_travel_benefits"], bool)):
         raise RuntimeError("Invalid model response")
     # Internal-only metadata for offline measurement; respond() never puts it
     # in a customer response or a prompt.
@@ -709,6 +721,13 @@ def respond(conversation: Conversation, message: str,
         "Reply in the requested language, Spanish or Portuguese. Explain only the card facts below "
         "and cite supporting fact IDs. Do not describe internal development or testing. "
         "Speak naturally to a customer. Never refer to a catalog, version, draft, internal source, or testing. "
+        "The comparison field interprets the latest customer question, not your answer. "
+        "Set LOWER_ANNUAL_FEE for a request for another card with a lower recurring card fee or a cheaper card; "
+        "set NO_ANNUAL_FEE for another card with no annual fee; set OTHER_CARD for another option without a price condition. "
+        "Use NONE for benefit details, interest-rate questions, total borrowing cost, eligibility, applications, and ordinary factual questions. "
+        "For a comparison, put the card named as the price reference in reference_card; otherwise use the selected card, or an empty string if neither is known. "
+        "Set requires_travel_benefits only when the customer asks to preserve travel benefits such as lounge access or travel coverage. "
+        "Do not decide which alternative qualifies in this field; the host service checks the versioned terms. "
         "If asked for a card with no fees, distinguish no annual fee from purchase interest and any unknown charges; never promise the card has no costs. "
         "A first partial billing cycle has no Rewards/Summit fee installment. For later cycles, do not claim a fee will be charged or waived until the card, completed full cycle, and final posted eligible spending net of refunds are known. "
         "Do not call a card ideal or guaranteed suitable for a particular customer based only on a Student segment or a chat statement; enrollment is unverified. "
@@ -766,6 +785,32 @@ def respond(conversation: Conversation, message: str,
             if before_model_call is not None:
                 before_model_call()
             result = _generate(system + correction, context, model)
+            comparison = result.get("comparison")
+            if (isinstance(comparison, dict) and
+                    comparison.get("kind") in {"LOWER_ANNUAL_FEE", "NO_ANNUAL_FEE", "OTHER_CARD"} and
+                    len(mentioned_cards) < 2):
+                reference = comparison.get("reference_card")
+                if reference not in CARD_NAMES or (mentioned_cards and reference not in mentioned_cards):
+                    reference = mentioned_cards[0] if mentioned_cards else previous_card
+                if reference is None and comparison["kind"] == "LOWER_ANNUAL_FEE":
+                    answer = ("Mais barato que qual cartão: Campus, Horizon, Rewards ou Summit?"
+                              if conversation.language == "pt" else
+                              "¿Más barata que cuál tarjeta: Campus, Horizon, Rewards o Summit?")
+                    conversation.turns.extend([{"role": "user", "text": message},
+                                               {"role": "assistant", "text": answer}])
+                    return {"answer": answer, "citations": [], "route": "CLARIFY",
+                            "fact_version": FACT_VERSION}
+                semantic_intent = ProductIntent(
+                    "CATALOG_COMPARISON",
+                    lower_cost=comparison["kind"] == "LOWER_ANNUAL_FEE",
+                    require_travel_benefits=comparison.get("requires_travel_benefits") is True,
+                    no_annual_fee=comparison["kind"] == "NO_ANNUAL_FEE",
+                    exclude_current=True)
+                conversation.selected_card = reference
+                try:
+                    return _alternative_cards(conversation, message, semantic_intent)
+                finally:
+                    conversation.selected_card = previous_card
             if (not isinstance(result["answer"], str) or not result["answer"].strip() or
                 not isinstance(result["citations"], list) or
                 not all(isinstance(fid, str) and fid in allowed for fid in result["citations"])):

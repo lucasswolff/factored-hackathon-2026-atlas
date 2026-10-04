@@ -34,7 +34,8 @@ class ConversationTests(unittest.TestCase):
 
     def test_sonnet_uses_low_effort_and_haiku_omits_it(self):
         wire = {"content": [{"type": "text", "text": json.dumps(
-            {"answer": "OK", "citations": [], "unresolved": False})}]}
+            {"answer": "OK", "citations": [], "unresolved": False,
+             "comparison": {"kind": "NONE", "reference_card": "", "requires_travel_benefits": False}})}]}
         class Response(io.BytesIO):
             def __enter__(self):
                 return self
@@ -228,6 +229,32 @@ class ConversationTests(unittest.TestCase):
         self.assertIn("Rewards:", result["answer"])
         self.assertIn("Horizon:", result["answer"])
         self.assertEqual(chat.selected_card, "Horizon")
+
+    def test_semantic_comparison_handles_unlisted_cheaper_paraphrase(self):
+        chat = Conversation.start("pt", "México", selected_card="Horizon")
+        with patch("advisor.service._generate", return_value={
+            "answer": "Resposta provisória do modelo.", "citations": [], "unresolved": False,
+            "comparison": {"kind": "LOWER_ANNUAL_FEE", "reference_card": "Summit",
+                           "requires_travel_benefits": True},
+        }) as model:
+            result = respond(chat, "Existe um cartão que pese menos no bolso do que o Summit e ainda dê sala VIP?")
+        self.assertEqual(model.call_count, 1)
+        self.assertEqual(result["route"], "ANSWER_FACT")
+        self.assertIn("Rewards:", result["answer"])
+        self.assertNotIn("Horizon:", result["answer"])
+        self.assertEqual(chat.selected_card, "Horizon")
+
+    def test_semantic_comparison_does_not_own_application_or_interest_questions(self):
+        chat = Conversation.start("pt", "México", selected_card="Summit")
+        with patch("advisor.service._generate", return_value={
+            "answer": "A taxa de compras é 36% ao ano.", "citations": ["RATE.MX"],
+            "unresolved": False,
+            "comparison": {"kind": "NONE", "reference_card": "Summit",
+                           "requires_travel_benefits": False},
+        }):
+            result = respond(chat, "A taxa de juros do Summit é menor?")
+        self.assertEqual(result["route"], "ANSWER_FACT")
+        self.assertEqual(result["citations"], ["RATE.MX"])
 
     def test_credit_question_routes_to_precheck_and_model_action_claim_is_blocked(self):
         chat = Conversation.start("pt", "Colombia", "CMP-NM2UHJMKPA0C")

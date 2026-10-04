@@ -267,7 +267,7 @@ def build() -> None:
 
     # 5. Current checks and their limits
     d.start()
-    d.title("04  /  MEASURED BEHAVIOR", "87 automated tests passed; 7 of 8 live flows met expectations",
+    d.title("04  /  MEASURED BEHAVIOR", "87 automated tests passed; 7/8 live flows met expectations*",
             "Current 4 October build · The two-card cheaper comparison remains an open failure.")
     numbered_card(d, 0.56, 2.05, 5.84, "1", "Product facts + context",
                   "Benefits and monthly fee answered together with facts.\n'This card' kept Horizon. A two-card cheaper question\nfailed to clarify its price reference.", h=1.72)
@@ -276,11 +276,17 @@ def build() -> None:
     numbered_card(d, 0.56, 4.02, 5.84, "3", "Profile + service boundaries",
                   "Student suggestion named fixture and unverified status.\nExisting-card cancellation was refused. A second\napplication was blocked before another precheck.", h=1.72)
     numbered_card(d, 6.61, 4.02, 6.17, "4", "Dated evidence + capacity",
-                  "Current build: 87 local tests; 7/8 live smoke flows.\nEarlier rehearsal: 12 entry paths, 3 application\nread-backs, 24 HTTP requests from six visitors.", h=1.72)
-    d.rect(0.56, 6.18, 12.22, 0.55, PALE, stroke=LINE, radius=0.11)
-    d.text(0.78, 6.35, 11.75, 0.24,
+                  "Current build: 87 local tests; 7/8* live smoke flows.\nEarlier rehearsal: 12 entry paths, 3 application\nread-backs, 24 HTTP requests from six visitors.", h=1.72)
+    d.rect(0.56, 6.03, 12.22, 0.81, PALE, stroke=LINE, radius=0.11)
+    d.text(0.78, 6.13, 11.75, 0.18,
+           "* After Rewards and Summit, 'a cheaper one' (PT: 'um mais barato') did not trigger a question about the reference card.",
+           9.2, bold=True, color=NAVY)
+    d.text(0.78, 6.36, 11.75, 0.18,
+           "It listed alternatives; a separate 'cheaper than Rewards' answer even included the more expensive Summit.",
+           9.2, color=NAVY)
+    d.text(0.78, 6.62, 11.75, 0.14,
            "Separate, noncumulative checks  ·  400 model attempts/day cap  ·  No independent bilingual review or peak load test",
-           10.0, bold=True, color=TEAL)
+           8.2, bold=True, color=TEAL)
     d.finish()
 
     # 6. Roadmap to a real customer service

@@ -524,6 +524,16 @@ def respond(conversation: Conversation, message: str,
     if directory is not None and product_intent.kind == "PROFILE_RECOMMENDATION":
         from .session import recommendation_for_session
         result = recommendation_for_session(conversation, directory)
+        if (re.search(r"\b(?:soy estudiante|sou estudante)\b", normalize(message)) and
+                result["route"] == "POLICY_SUGGESTION"):
+            profile = directory.read_profile(conversation.demo_token, conversation.profile_permission)
+            if profile.segment != "Student":
+                result["answer"] += (
+                    " Você disse que é estudante, mas o perfil de demonstração selecionado não registra esse segmento; "
+                    "a matrícula precisa ser verificada."
+                    if conversation.language == "pt" else
+                    " Dices que eres estudiante, pero el perfil de demostración seleccionado no registra ese segmento; "
+                    "hay que verificar la matrícula.")
         if (re.search(r"\b(?:nao|não|sem|no|sin)\s+(?:possuo\s+|tenho\s+|tengo\s+)?(?:renda|ingresos?)\b",
                       lower) and result["route"] == "POLICY_SUGGESTION"):
             result["answer"] += (

@@ -357,6 +357,53 @@ class HostedTest(unittest.TestCase):
                 self.assertIn(reason, answer)
                 model.assert_not_called()
 
+    def test_campaign_no_suggestion_horizon_becomes_this_card(self):
+        for language, question, followup in (
+                ("es", "Soy estudiante, ¿qué tarjeta me recomiendas?", "¿Qué beneficios tiene esta tarjeta?"),
+                ("pt", "Sou estudante, qual cartão você me recomenda?", "Quais os benefícios deste cartão?")):
+            with self.subTest(language=language):
+                self.cookie = None
+                self.judge("GET", "/")
+                self.judge("POST", "/api/start", {"entry": "campaign",
+                                                   "campaign_id": "CMP-NM2UHJMKPA0C",
+                                                   "country": "Colombia", "language": language,
+                                                   "alias": "P04"})
+                with patch("advisor.service._generate") as model:
+                    _, state, _ = self.judge("POST", "/api/chat", {"message": question})
+                self.assertEqual(state["events"][-1]["route"], "POLICY_SUGGESTION")
+                self.assertIn("Horizon", state["events"][-1]["text"])
+                self.assertIn("estudiante" if language == "es" else "estudante", question)
+                self.assertIn("no registra ese segmento" if language == "es" else
+                              "não registra esse segmento", state["events"][-1]["text"])
+                self.assertEqual(state["conversation"]["selected_card"], "Horizon")
+                self.assertEqual(state["last_result"]["policy"]["status"], "NO_SUGGESTION")
+                model.assert_not_called()
+
+                def benefits(system, context, _model):
+                    self.assertEqual(json.loads(context)["selected_card"], "Horizon")
+                    self.assertIn("[BENEFIT.HORIZON]", system)
+                    self.assertNotIn("[BENEFIT.REWARDS]", system)
+                    return {"answer": "Horizon: beneficios cotidianos.",
+                            "citations": ["BENEFIT.HORIZON"], "unresolved": False,
+                            "comparison": {"kind": "NONE", "reference_card": "",
+                                           "requires_travel_benefits": False}}
+
+                with patch.object(self.app, "_consume_model_attempt"), patch(
+                        "advisor.service._generate", side_effect=benefits) as model:
+                    _, state, _ = self.judge("POST", "/api/chat", {"message": followup})
+                self.assertEqual(state["events"][-1]["route"], "ANSWER_FACT")
+                self.assertEqual(state["events"][-1]["citations"], ["BENEFIT.HORIZON"])
+                model.assert_called_once()
+
+                with patch.object(self.app, "_consume_model_attempt"), patch("advisor.service._generate", return_value={
+                        "answer": "Rewards: beneficios de viaje.",
+                        "citations": ["BENEFIT.REWARDS"], "unresolved": False,
+                        "comparison": {"kind": "NONE", "reference_card": "",
+                                       "requires_travel_benefits": False}}):
+                    _, state, _ = self.judge("POST", "/api/chat", {
+                        "message": "¿Y Rewards?" if language == "es" else "E o Rewards?"})
+                self.assertEqual(state["conversation"]["selected_card"], "Rewards")
+
     def test_cancellation_request_does_not_open_a_cancellation_workflow(self):
         self.judge("GET", "/")
         self.judge("POST", "/api/start", {"entry": "direct", "country": "México",

@@ -297,6 +297,22 @@ def _asks_about_cancellation(text: str) -> bool:
             or any(phrase in plain for phrase in ("dar de baja", "dar baixa", "encerrar cartao")))
 
 
+def requests_card_cancellation(text: str) -> bool:
+    """Separate an existing-card service request from questions about the term."""
+    plain = normalize(text)
+    if "?" in text or any(plain.startswith(start) for start in (
+            "posso ", "pode ", "puedo ", "puede ", "como ", "quando ", "cuando ",
+            "se eu ", "si ", "tem ", "ha ")):
+        return False
+    action = any(phrase in plain for phrase in (
+        "quero cancelar", "queria cancelar", "desejo cancelar", "preciso cancelar",
+        "quiero cancelar", "deseo cancelar", "necesito cancelar",
+        "solicito cancelamento", "solicito cancelacion", "quero dar baixa",
+        "quiero dar de baja", "cancele meu", "cancela meu", "cancela mi"))
+    return action and any(word in plain.split() for word in (
+        "cartao", "tarjeta", "card", "campus", "horizon", "rewards", "summit"))
+
+
 def _boundary(text: str, language: str) -> str | None:
     """Server-owned response for requests whose outcome needs unavailable tools."""
     t = text.casefold()
@@ -407,6 +423,16 @@ def respond(conversation: Conversation, message: str,
     mentioned_cards = [card for card in CARD_NAMES if re.search(rf"\b{card.casefold()}\b", lower)]
     if len(mentioned_cards) == 1:
         conversation.selected_card = mentioned_cards[0]
+    if requests_card_cancellation(message):
+        answer = ("Este chat atende informações e solicitações de novos cartões. Não consigo cancelar um cartão "
+                  "existente por aqui; procure o atendimento do banco para fazer esse pedido. "
+                  "Nenhum cancelamento foi iniciado."
+                  if conversation.language == "pt" else
+                  "Este chat atiende información y solicitudes de tarjetas nuevas. No puedo cancelar una tarjeta "
+                  "existente por aquí; contacta al servicio del banco para solicitarlo. "
+                  "No se inició ninguna cancelación.")
+        return {"answer": answer, "citations": ["TERM.CANCELLATION"],
+                "route": "SERVICE_BOUNDARY", "fact_version": FACT_VERSION}
     if PRIVATE_INPUT.search(message):
         return {"answer": _boundary(message, conversation.language), "citations": [],
                 "route": "SERVICE_BOUNDARY", "fact_version": FACT_VERSION}
@@ -497,7 +523,16 @@ def respond(conversation: Conversation, message: str,
                 "fact_version": FACT_VERSION}
     if directory is not None and product_intent.kind == "PROFILE_RECOMMENDATION":
         from .session import recommendation_for_session
-        return recommendation_for_session(conversation, directory)
+        result = recommendation_for_session(conversation, directory)
+        if (re.search(r"\b(?:nao|não|sem|no|sin)\s+(?:possuo\s+|tenho\s+|tengo\s+)?(?:renda|ingresos?)\b",
+                      lower) and result["route"] == "POLICY_SUGGESTION"):
+            result["answer"] += (
+                " Você disse que não tem renda; a estimativa do perfil selecionado é diferente. "
+                "A sugestão usa o perfil da demonstração, e a matrícula e a renda precisam ser verificadas antes de qualquer decisão."
+                if conversation.language == "pt" else
+                " Dijiste que no tienes ingresos; la estimación del perfil seleccionado es distinta. "
+                "La sugerencia usa el perfil de la demostración, y la matrícula y los ingresos deben verificarse antes de cualquier decisión.")
+        return result
     precheck_cues = ("califico", "calificar", "califica", "elegível", "elegibilidade", "preaprov", "pré-aprov", "preaprob", "aprueba", "aprovado", "precheck", "prequal", "soy elegible", "sou elegível", "posso ser aprovado", "teria crédito", "teria credito", "tenho crédito", "tenho credito", "tendría crédito", "tendria credito", "tengo crédito", "tengo credito", "would i qualify", "would i be approved")
     asks_if_precheck_required = (
         any(term in lower for term in ("precheck", "evaluación previa", "evaluacion previa",

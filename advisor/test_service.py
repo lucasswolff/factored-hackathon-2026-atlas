@@ -13,6 +13,8 @@ class ConversationTests(unittest.TestCase):
         examples = (
             ("Qual cartão você me recomenda?", "PROFILE_RECOMMENDATION", False),
             ("¿Qué tarjeta me recomiendas?", "PROFILE_RECOMMENDATION", False),
+            ("Sou estudante; qual o melhor cartão para mim?", "PROFILE_RECOMMENDATION", False),
+            ("¿Cuál es la mejor tarjeta para mí?", "PROFILE_RECOMMENDATION", False),
             ("Me recomende outra opção com anuidade menor", "CATALOG_COMPARISON", True),
             ("Tem uma opção mais em conta?", "CATALOG_COMPARISON", True),
             ("¿Hay otra tarjeta sin cuota anual?", "CATALOG_COMPARISON", True),
@@ -78,6 +80,17 @@ class ConversationTests(unittest.TestCase):
                 result = respond(Conversation.start("es"), request)
                 self.assertEqual(result["route"], "SERVICE_BOUNDARY", request)
             generate.assert_not_called()
+
+    def test_existing_card_cancellation_request_stays_out_of_acquisition(self):
+        for language, message in (("pt", "quero cancelar meu cartao"),
+                                  ("es", "Quiero dar de baja mi tarjeta")):
+            with self.subTest(message=message), patch("advisor.service._generate") as model:
+                result = respond(Conversation.start(language, "México"), message)
+                self.assertEqual(result["route"], "SERVICE_BOUNDARY")
+                self.assertIn("TERM.CANCELLATION", result["citations"])
+                self.assertIn("nenhum cancelamento" if language == "pt" else
+                              "ninguna cancelación", result["answer"].casefold())
+                model.assert_not_called()
 
     def test_public_questions_use_facts_and_reject_bad_citation(self):
         chat = Conversation.start("pt", "México")

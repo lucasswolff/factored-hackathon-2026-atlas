@@ -15,7 +15,7 @@ from unittest.mock import patch
 from advisor.applications import ApplicationStore
 from advisor.service import Conversation
 from advisor.synthetic_data import SyntheticDirectory
-from advisor.web import AdvisorServer, DemoLimitError, WebApp
+from advisor.web import AdvisorServer, DemoLimitError, MAX_REQUESTS_PER_WINDOW, WebApp
 
 
 class HostedTest(unittest.TestCase):
@@ -305,11 +305,52 @@ class HostedTest(unittest.TestCase):
         self.assertEqual(state["events"][-1]["route"], "ASK_PRECHECK_CONSENT")
         self.assertEqual(state["pending_action"]["card"], "Horizon")
 
+    def test_student_best_card_uses_selected_profile_and_keeps_income_conflict_visible(self):
+        self.judge("GET", "/")
+        self.judge("POST", "/api/start", {"entry": "direct", "country": "Colombia",
+                                           "language": "pt", "alias": "P01"})
+        with patch("advisor.service._generate") as model:
+            status, state, _ = self.judge("POST", "/api/chat", {
+                "message": "sou estudante, nao possuo renda. Qual o melhor cartão para mim?"})
+        self.assertEqual(status, 200)
+        self.assertEqual(state["events"][-1]["route"], "POLICY_SUGGESTION")
+        self.assertEqual(state["conversation"]["selected_card"], "Campus")
+        self.assertIn("Campus", state["events"][-1]["text"])
+        self.assertIn("perfil selecionado", state["events"][-1]["text"])
+        self.assertTrue(state["conversation"]["profile_permission"])
+        model.assert_not_called()
+
+    def test_no_suggestion_acknowledgement_offers_general_options(self):
+        self.judge("GET", "/")
+        self.judge("POST", "/api/start", {"entry": "direct", "country": "Colombia",
+                                           "language": "pt", "alias": "P04"})
+        with patch("advisor.service._generate") as model:
+            _, state, _ = self.judge("POST", "/api/chat", {"message": "que cartao voce me recomenda?"})
+            self.assertEqual(state["events"][-1]["route"], "POLICY_SUGGESTION")
+            self.assertIn("Não há sugestão automática", state["events"][-1]["text"])
+            _, state, _ = self.judge("POST", "/api/chat", {"message": "ok"})
+        self.assertEqual(state["events"][-1]["route"], "ANSWER_FACT")
+        self.assertIn("Campus", state["events"][-1]["text"])
+        self.assertIsNone(state["pending_action"])
+        model.assert_not_called()
+
+    def test_cancellation_request_does_not_open_a_cancellation_workflow(self):
+        self.judge("GET", "/")
+        self.judge("POST", "/api/start", {"entry": "direct", "country": "México",
+                                           "language": "pt", "alias": "P05"})
+        with patch("advisor.service._generate") as model:
+            _, state, _ = self.judge("POST", "/api/chat", {"message": "quero cancelar meu cartao"})
+        self.assertEqual(state["events"][-1]["route"], "SERVICE_BOUNDARY")
+        self.assertIn("Este chat atende informações e solicitações de novos cartões", state["events"][-1]["text"])
+        self.assertIsNone(state["pending_action"])
+        self.assertIsNone(state["handoff"])
+        model.assert_not_called()
+
     def test_limits_refuse_without_calling_model(self):
         self.judge("GET", "/")
         sid = self.cookie.split("=", 1)[1]
         state = self.app.sessions[sid]
-        state.request_times = [__import__("time").time()] * 60
+        state.request_times = [__import__("time").time()] * MAX_REQUESTS_PER_WINDOW
         self.assertEqual(self.judge("POST", "/api/persona-preview", {"alias": "P01"})[0], 429)
         with patch("advisor.service._generate") as model:
             self.app.answer_count = 2

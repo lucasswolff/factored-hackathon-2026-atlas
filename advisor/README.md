@@ -37,6 +37,13 @@ top-card profile suggestion or imply eligibility. An explicit request to apply
 for an unnamed different card asks which card first. Wording that the local
 router does not recognize remains a public model question, and the router still
 needs independent bilingual paraphrase evaluation.
+"Best card for me" questions use the selected demo fixture's profile; when a
+visitor says they have no income but the fixture has a positive estimate, the
+answer calls out that difference. An acknowledgement after no automatic
+suggestion opens a general card overview. Requests to cancel an existing card
+are directed to bank servicing; this acquisition demo cannot cancel a card.
+The hosted demo allows 120 POST requests per session in a moving ten-minute
+window, alongside a separate shared daily limit of 200 model attempts.
 
 Acquisition intent stays in chat: the advisor asks whether it may
 run a card-specific simulated precheck using the selected profile. A typed yes

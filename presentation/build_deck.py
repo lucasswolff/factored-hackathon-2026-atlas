@@ -186,59 +186,66 @@ def build() -> None:
     d.text(10.75, 1.3, 2.3, 1.1, "✳", 79, bold=True, color=LIME, align="center")
     label(d, 0.7, 0.68, "AI-FIRST BANKING", fill=LIME, width=2.16)
     d.text(0.7, 1.45, 7.4, 1.0, "ATLAS", 63, bold=True, color=WHITE)
-    d.text(0.74, 2.52, 7.55, 1.22, "A clearer path from card question\nto a verified next step", 27, bold=True, color=WHITE)
-    d.text(0.74, 4.17, 7.1, 0.62, "Credit-card product information, simulated eligibility,\nand human-review handoff in Spanish and Portuguese.", 15, color="C6D8D5")
+    d.text(0.74, 2.52, 7.55, 1.22, "Understand a card. Find a fit.\nTake a verified next step.", 27, bold=True, color=WHITE)
+    d.text(0.74, 4.17, 7.1, 0.62, "Bilingual card guidance, simulated eligibility,\nand a path to human review in one conversation.", 15, color="C6D8D5")
     d.line(0.74, 5.47, 7.65, 5.47, "638987", 1)
     d.text(0.74, 5.76, 6.8, 0.35, "FACTORED HACKATHON 2026", 15, bold=True, color=LIME)
     d.text(0.74, 6.18, 6.8, 0.35, "Atlas  ·  Lucas Wolff", 17, color=WHITE)
     d.text(0.74, 7.11, 7.2, 0.18, "Working prototype  ·  Team-created offers and fictional public fixtures", 8.5, color="AFC4C1")
     d.finish()
 
-    # 2. Goal and data lineage
+    # 2. Product journey, with a concise data boundary
     d.start()
-    d.title("01  /  THE CUSTOMER PROBLEM", "Help a prospective card customer decide with confidence",
-            "A customer can ask natural questions, compare cards, request a simulated precheck, or ask for a person.")
-    d.rect(0.56, 2.12, 12.22, 0.87, NAVY, radius=0.15)
-    d.text(0.84, 2.25, 11.64, 0.64,
-           "Goal: answer prospective card questions with grounded facts,\nthen verify every action the agent claims it took.",
-           16, bold=True, color=WHITE)
-    d.text(0.56, 3.25, 5.85, 0.3, "SUPPLIED DATA  /  WHY WE USE IT", 11, bold=True, color=TEAL)
-    numbered_card(d, 0.56, 3.65, 5.83, "1", "Campaigns + sends",
-                  "MARKETING_CAMPAIGNS + CAMPAIGN_SENDS: 52 generic\ncredit campaigns; interest and entry context, not sales.", h=1.27)
-    numbered_card(d, 0.56, 5.05, 5.83, "2", "Customers + products",
-                  "CUSTOMERS + PRODUCTS: local scenario profiles, country,\nscore, income estimate, and existing holdings.", h=1.27)
-    numbered_card(d, 6.62, 3.65, 6.16, "3", "Service agents + transcripts",
-                  "SERVICE_AGENTS: language-based mock routing.\nCALL_TRANSCRIPTS: Spanish tone, not facts.", h=1.27)
-    numbered_card(d, 6.62, 5.05, 6.16, "4", "Team-created demo assets",
-                  "Four offer terms, synthetic policy, fictional public fixtures,\nnew chat events, and mock application/handoff records.", fill=PALE, h=1.27)
-    d.text(0.56, 6.61, 12.1, 0.25,
-           "Evidence boundary: 1.75M sends and 97.8K clicks cover all supplied campaigns; neither proves card acquisition or chatbot demand.",
-           9.5, color=MUTED)
+    d.title("01  /  THE PRODUCT JOURNEY", "From a card question to a customer-controlled next step",
+            "Spanish and Portuguese chat helps a visitor understand the offers before choosing whether to act.")
+    d.rect(0.56, 2.12, 12.22, 0.7, NAVY, radius=0.15)
+    d.text(0.84, 2.32, 11.64, 0.27,
+           "Clear terms now  ·  relevant choices next  ·  verified status for every mock action",
+           15, bold=True, color=WHITE)
+    for x, number, head, body, fill in [
+        (0.56, "1", "Ask", "Fees and benefits\nin natural language", WHITE),
+        (3.06, "2", "Compare", "See options and\ntheir trade-offs", PALE_BLUE),
+        (5.56, "3", "Choose", "Keep the right card\nin context", WHITE),
+        (8.06, "4", "Consent", "Allow an optional\ncard-specific precheck", PALE),
+        (10.56, "5", "Next step", "Confirm a mock request\nor ask for review", WHITE),
+    ]:
+        d.rect(x, 3.18, 2.22, 1.88, fill, stroke=LINE, radius=0.14)
+        d.rect(x + 0.16, 3.35, 0.38, 0.38, LIME, radius=0.18)
+        d.text(x + 0.16, 3.45, 0.38, 0.12, number, 10.5, bold=True, align="center")
+        d.text(x + 0.16, 3.92, 1.9, 0.3, head, 16, bold=True)
+        d.text(x + 0.16, 4.35, 1.9, 0.55, body, 10.3, color=MUTED)
+    d.rect(0.56, 5.43, 12.22, 0.61, PALE, stroke=LINE, radius=0.12)
+    d.text(0.78, 5.61, 11.8, 0.25,
+           "Four choices: Campus for students  ·  Horizon for daily use  ·  Rewards for travel  ·  Summit for premium travel",
+           11.2, bold=True, color=TEAL)
+    d.text(0.56, 6.27, 12.12, 0.4,
+           "Data → value: campaigns shape entry; customer/product rows shape local tests; agent records shape mock routing; transcripts guide tone.\nPublic fixtures, offers, policy, and actions are team-created. Historical clicks show engagement, not card sales.",
+           9.0, color=MUTED)
     d.finish()
 
     # 3. Real Spanish conversation
     d.start()
-    d.title("02  /  WORKING EXPERIENCE", "A real conversation in Spanish",
+    d.title("02  /  WORKING EXPERIENCE", "See a live card question answered in Spanish",
             "Captured from the deployed judge app on 3 October 2026 · Rewards campaign · México · fictional fixture P02")
     d.rect(0.55, 2.02, 9.6, 4.72, WHITE, stroke=LINE, radius=0.13)
     d.picture(CHAT, 0.64, 2.11, 9.42, 4.54)
     d.rect(10.38, 2.02, 2.4, 4.72, NAVY, radius=0.15)
-    d.text(10.64, 2.28, 1.9, 0.52, "What this\nshows", 19, bold=True, color=WHITE)
+    d.text(10.64, 2.28, 1.9, 0.52, "Customer\nvalue", 19, bold=True, color=WHITE)
     d.line(10.64, 3.12, 12.52, 3.12, "597A7A", 1)
-    d.text(10.64, 3.4, 1.92, 0.75, "Maintains the\nselected card", 13, bold=True, color=LIME)
-    d.text(10.64, 4.22, 1.92, 0.75, "Answers a\nfollow-up", 13, bold=True, color=LIME)
-    d.text(10.64, 5.04, 1.92, 0.75, "Displays source\nfact IDs", 13, bold=True, color=LIME)
-    d.text(10.64, 6.18, 1.92, 0.31, "Live output; not a script", 9.2, color="C6D8D5")
+    d.text(10.64, 3.4, 1.92, 0.75, "Selected card\nstays in context", 13, bold=True, color=LIME)
+    d.text(10.64, 4.22, 1.92, 0.75, "Follow-up gets\nan answer", 13, bold=True, color=LIME)
+    d.text(10.64, 5.04, 1.92, 0.75, "Source IDs make\nclaims traceable", 13, bold=True, color=LIME)
+    d.text(10.64, 6.18, 1.92, 0.31, "Live fictional-fixture chat", 9.2, color="C6D8D5")
     d.finish()
 
     # 4. Architecture
     d.start()
-    d.title("03  /  HOW IT WORKS", "Claude routes and answers; the service controls actions",
-            "A bounded intent choice comes before service-owned policy, consent, and durable outcomes.")
+    d.title("03  /  HOW IT WORKS", "How Atlas turns a question into a safe next step",
+            "Each part supports the journey: understand intent, ground facts, protect consent, and verify actions.")
     for x, w, head, body, fill in [
-        (0.56, 2.34, "Browser", "Campaign / direct entry\nFictional fixture", PALE_BLUE),
-        (3.23, 2.52, "Lambda service", "HTTPS API + session\nProtected review route", WHITE),
-        (6.08, 3.06, "Conversation router", "Haiku: bounded intent\nService validates session", PALE),
+        (0.56, 2.34, "Customer starts", "Campaign / direct entry\nFictional demo customer", PALE_BLUE),
+        (3.23, 2.52, "Lambda service", "Keeps the active card\nChecks access + limits", WHITE),
+        (6.08, 3.06, "Haiku intent", "Fact / compare / apply\nNo private score sent", PALE),
     ]:
         d.rect(x, 2.15, w, 1.22, fill, stroke=LINE, radius=0.14)
         d.text(x + 0.2, 2.36, w - 0.4, 0.28, head, 16, bold=True)
@@ -246,14 +253,14 @@ def build() -> None:
     d.text(2.92, 2.53, 0.25, 0.3, "→", 21, color=TEAL)
     d.text(5.77, 2.53, 0.25, 0.3, "→", 21, color=TEAL)
     d.rect(9.49, 2.15, 3.29, 1.22, NAVY, radius=0.14)
-    d.text(9.7, 2.36, 2.88, 0.28, "DynamoDB state", 16, bold=True, color=WHITE)
-    d.text(9.7, 2.72, 2.85, 0.52, "Sessions + quota\nActions + roster", 10.5, color="C9D9D8")
+    d.text(9.7, 2.36, 2.88, 0.28, "Durable state", 16, bold=True, color=WHITE)
+    d.text(9.7, 2.72, 2.85, 0.52, "DynamoDB sessions\nMock actions + read-back", 10.5, color="C9D9D8")
     d.text(9.19, 2.53, 0.25, 0.3, "→", 21, color=TEAL)
 
     for x, w, head, body, fill in [
-        (0.56, 3.75, "Product answers", "Sonnet + versioned public facts\nCitations checked; unknown → offer review", WHITE),
-        (4.48, 3.75, "Deterministic policy", "Fixture-bound suggestions\nConsented synthetic precheck\nThe model cannot approve credit", PALE),
-        (8.40, 4.38, "Verified actions + reviewer", "Confirmation → write once → read back\nApplication: PENDING_REVIEW\nFull-thread handoff; bot pauses", "FFF3E8"),
+        (0.56, 3.75, "Useful answers", "Sonnet + versioned public facts\nSource IDs trace product claims", WHITE),
+        (4.48, 3.75, "Controlled suggestion", "Selected fixture → policy suggestion\nConsent → synthetic precheck\nNo automatic approval", PALE),
+        (8.40, 4.38, "Verified next step", "Separate confirmation → write → read back\nMock application: PENDING_REVIEW\nFull-thread handoff; bot pauses", "FFF3E8"),
     ]:
         d.rect(x, 3.87, w, 1.61, fill, stroke=LINE, radius=0.14)
         d.text(x + 0.21, 4.1, w - 0.42, 0.27, head, 15, bold=True)
@@ -261,21 +268,21 @@ def build() -> None:
 
     d.rect(0.56, 5.88, 12.22, 0.79, NAVY, radius=0.13)
     d.text(0.82, 6.07, 11.72, 0.46,
-           "Boundaries: no private profile in model requests  ·  secrets in AWS SSM  ·  sanitized CloudWatch logs  ·  no bank write",
+           "Trust: private score stays in the service  ·  card-specific consent gates precheck  ·  read-back gates success claims",
            11.5, bold=True, color=WHITE)
     d.finish()
 
     # 5. Current checks and their limits
     d.start()
-    d.title("04  /  MEASURED BEHAVIOR", "87 automated tests passed; 7/8 live flows met expectations*",
-            "Current 4 October build · agent-run production smoke checks.")
+    d.title("04  /  MEASURED BEHAVIOR", "A working journey, backed by measured checks",
+            "Current 4 October build · product and safety paths checked in production.")
     numbered_card(d, 0.56, 2.05, 5.84, "1", "Product facts + context",
                   "Benefits and monthly fee came together with citations.\n'This card' kept Horizon across turns. A comparison\nagainst Summit returned lower-cost options.", h=1.72)
     numbered_card(d, 6.61, 2.05, 6.17, "2", "Intent + consent",
                   "A new application request reached card-specific consent.\nAn unnamed other card prompted a card choice.\nPrecheck decline led to a separate application choice.", h=1.72)
     numbered_card(d, 0.56, 4.02, 5.84, "3", "Profile + service boundaries",
                   "Student suggestion named the selected demo profile and\nits unverified enrollment. Cancellation got a support\npath; a second application got the one-per-chat rule.", h=1.72)
-    numbered_card(d, 6.61, 4.02, 6.17, "4", "Dated evidence + capacity",
+    numbered_card(d, 6.61, 4.02, 6.17, "4", "Checks behind the demo",
                   "Current build: 87 local tests; 7/8* live smoke flows.\nEarlier rehearsal: 12 entry paths, 3 application\nread-backs, 24 HTTP requests from six visitors.", h=1.72)
     d.rect(0.56, 6.03, 12.22, 0.81, PALE, stroke=LINE, radius=0.11)
     d.text(0.78, 6.13, 11.75, 0.18,
@@ -291,18 +298,18 @@ def build() -> None:
 
     # 6. Roadmap to a real customer service
     d.start()
-    d.title("05  /  PATH TO A REAL SERVICE", "What changes before a customer can rely on it",
-            "The prototype proves a workflow; a banking deployment needs approved data, live operations, and independent validation.")
-    numbered_card(d, 0.56, 2.04, 5.84, "1", "Approved products + policy",
-                  "Replace demo offers and thresholds with governed,\nversioned bank terms and credit policy; legal review.", h=1.43)
-    numbered_card(d, 6.61, 2.04, 6.17, "2", "Identity + data permissions",
-                  "Real customer authentication, consent, current\naccount data, ownership checks, and retention controls.", h=1.43)
-    numbered_card(d, 0.56, 3.7, 5.84, "3", "Live human service",
-                  "Agent availability, queue ownership, employee inbox,\nreply in the same chat, SLA, and escalation outcomes.", h=1.43)
-    numbered_card(d, 6.61, 3.7, 6.17, "4", "Quality + operations",
-                  "Independent bilingual held-out evaluation, security\ntesting, capacity/cost budgets, monitoring, and support.", h=1.43)
+    d.title("05  /  PATH TO A REAL SERVICE", "From judge demo to a bank-ready advisor",
+            "The same journey can serve real customers when its facts, identity, and human support are bank-operated.")
+    numbered_card(d, 0.56, 2.04, 5.84, "1", "Accurate live offers",
+                  "Governed card terms and credit policy replace\nteam-created demo offers and thresholds.", h=1.43)
+    numbered_card(d, 6.61, 2.04, 6.17, "2", "Trusted customer context",
+                  "Verified identity, permission, and current account\ndata make personalized suggestions usable.", h=1.43)
+    numbered_card(d, 0.56, 3.7, 5.84, "3", "A human who can finish",
+                  "Live agent queue, full conversation handoff,\nreply in the same chat, and service levels.", h=1.43)
+    numbered_card(d, 6.61, 3.7, 6.17, "4", "Quality customers can rely on",
+                  "Independent bilingual evaluation, security,\ncapacity and cost budgets, and monitoring.", h=1.43)
     d.rect(0.56, 5.45, 12.22, 1.22, NAVY, radius=0.14)
-    d.text(0.85, 5.72, 11.62, 0.36, "Now: a working, public judge prototype with verified simulated actions.",
+    d.text(0.85, 5.72, 11.62, 0.36, "Today: a public demo. Next: approved bank systems and live reviewers.",
            17, bold=True, color=WHITE)
     d.text(0.85, 6.19, 4.7, 0.25, "Open the live demo  ↗", 11, bold=True, color=LIME, link=DEMO)
     d.text(6.6, 6.19, 5.72, 0.25, "Open the public repository  ↗", 11, bold=True,

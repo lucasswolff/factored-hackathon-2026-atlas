@@ -4,11 +4,12 @@
 - [PDF preview](atlas_factored_hackathon_2026.pdf)
 - [Spanish conversation capture](assets/spanish_conversation.png)
 
-The six slides cover the customer goal, the supplied data and its limits, a live
-Spanish conversation, the deployed model-first architecture, dated production
-checks and their remaining failure, and the work needed before serving real bank
-customers. The screenshot
-was captured from the public judge app on 2026-10-03 using fictional fixture
+The six-slide pitch leads with the customer journey and a live Spanish chat,
+then connects the data, models, service boundaries, and measured checks to the
+value the product delivers. The final slide shows what a bank would need to
+operate the same journey for real customers. This follows the organizer's
+product-led, roughly 60% product/creativity and 40% technical presentation
+guideline. The screenshot was captured from the public judge app on 2026-10-03 using fictional fixture
 P02, México, a Rewards campaign entry, and two unscripted Spanish questions.
 The cropped image on slide 3 comes from that full capture. A new model run may
 word the answers differently.
@@ -17,9 +18,9 @@ word the answers differently.
 
 | Slide | Source and interpretation |
 | --- | --- |
-| 2 | [Marketing feasibility audit](../docs/credit_marketing_feasibility.md): 52 generic credit-card campaigns; 1,746,801 sends and 97,793 clicks across **all** campaigns. These are engagement counts, not verified card sales. [Campaign mapping](../plan/campaign_cards.md) documents which historical rows seed the demo entry cards. `CUSTOMERS` and `PRODUCTS` inform local test scenarios; `SERVICE_AGENTS` supplies a private, filtered roster snapshot; `SERVICE.CALL_TRANSCRIPTS` is a Spanish tone reference. The public hosted customer fixtures, offers, policy, and actions are team-created. |
+| 2 | The five-step journey is the intended demo workflow, with an optional precheck and separate application confirmation. [Marketing feasibility audit](../docs/credit_marketing_feasibility.md): 52 generic credit-card campaigns; 1,746,801 sends and 97,793 clicks across **all** campaigns. These are engagement counts, not verified card sales. [Campaign mapping](../plan/campaign_cards.md) documents which historical rows seed the demo entry cards. `CUSTOMERS` and `PRODUCTS` inform local test scenarios; `SERVICE_AGENTS` supplies a private, filtered roster snapshot; `SERVICE.CALL_TRANSCRIPTS` is a Spanish tone reference. The public hosted customer fixtures, offers, policy, and actions are team-created. |
 | 3 | [Full screenshot](assets/spanish_conversation.png) captured from the [deployed app](https://55p7p6snz2nmfwiust5i5k7kmi0mjbqc.lambda-url.us-east-2.on.aws/). The visible source IDs are the demo's versioned public fact references. |
-| 4 | [Detailed hosted architecture](../docs/architecture.svg), [advisor behavior](../advisor/README.md), and [AWS deployment](../infra/aws/README.md). Claude Haiku proposes a bounded fresh-turn intent; the service controls session, policy, consent, and writes. Claude Sonnet answers many public fact questions. |
+| 4 | [Detailed hosted architecture](../docs/architecture.svg), [message-routing decision tree](../docs/message_routing.md), [advisor behavior](../advisor/README.md), and [AWS deployment](../infra/aws/README.md). Claude Haiku proposes a bounded fresh-turn intent so the visitor reaches the right next step; Claude Sonnet answers many public fact questions from versioned terms; the service controls session, policy, consent, and verified writes. |
 | 5 | [4 October production smoke checks](../docs/live_conversation_checks_2026-10-04.md): seven of eight agent-run scenarios met the stated expectation; the two-card cheaper comparison failed. The 87 passing source-data-free tests include controlled fault injection. The [earlier 2 October judge rehearsal](../docs/judge_rehearsal_2026-10-02.md) covered 12 combinations of entry path × country × language and included three confirmed mock application read-backs. A separate concurrency probe sent four HTTP requests from each of six visitors (24/24 successful **requests**, not 24 complete journeys). Slide 5 now places the current and earlier numbers together, explicitly marked as separate, noncumulative checks. They are not independent bilingual quality or peak capacity results. |
 | 6 | [Release and evaluation plan](../docs/release_readiness.md) and organizer `problem_statement.pdf` (pages 2–6). |
 

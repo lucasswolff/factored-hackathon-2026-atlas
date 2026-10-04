@@ -33,6 +33,14 @@ an extra chat `sí`, leaves one stored application. If the action was committed
 but its read-back or subsequent session save failed, retrying finds that same
 record and reference. These are controlled simulations, not live AWS outages.
 
+The [2026-10-04 automated paired evaluation](automated_evaluation_2026-10-04.md)
+adds a locked 20-case bilingual browser workload, a keyword FAQ baseline,
+verified action read-back, local end-to-end latency, token-based provider cost,
+and supplemental access/storage fault probes. Its cases and labels were
+agent-authored, and a safety fix followed the first run. Treat the final
+numbers as a post-fix regression, not independent held-out quality evidence.
+The next gate remains independent bilingual review of new cases and answers.
+
 ## Priority 0 — make a judge-accessible prototype safely
 
 1. **Choose the data boundary.** Confirm the organizer's data-use terms before

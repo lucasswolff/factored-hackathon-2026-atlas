@@ -121,6 +121,26 @@ def _fee_comparison(country: str) -> tuple[str, str, dict[str, tuple[int, int | 
     return fee_id, currency, terms
 
 
+def _focused_fee_fact(card: str, country: str, fact: str) -> str:
+    """Present only the selected card's values from a country fee fact."""
+    currency = {"Colombia": "COP", "México": "MXN", "Argentina": "ARS"}[country]
+    if card in {"Campus", "Horizon"}:
+        if f"Campus and Horizon {currency} 0 annual fee" not in fact:
+            raise RuntimeError("Zero-fee card fact is missing")
+        return f"{country}: {card} {currency} 0 annual fee, with no spend requirement."
+    annual = re.search(
+        rf"{card} maximum {currency} ([\d,]+)/year in {currency} ([\d,]+) (?:monthly )?installments",
+        fact)
+    threshold_section = fact.split("Waiver thresholds", 1)
+    threshold = (re.search(rf"{card} {currency} ([\d,]+)", threshold_section[1])
+                 if len(threshold_section) == 2 else None)
+    if annual is None or threshold is None:
+        raise RuntimeError("Card fee fact is missing")
+    return (f"{country}: {card} maximum {currency} {annual[1]}/year in monthly "
+            f"{currency} {annual[2]} installments. Waiver threshold per full cycle: "
+            f"{card} {currency} {threshold[1]}.")
+
+
 def _money(amount: int) -> str:
     return f"{amount:,}".replace(",", ".")
 
@@ -642,12 +662,13 @@ def respond(conversation: Conversation, message: str,
         r"\b(?:anuidade|anualidade|anualidad|mensalidade|mensualidad|cuota anual|cuota mensual|tarifa anual|annual fee|monthly fee)\b",
         normalize(message)))
     fee_id = {"Colombia": "FEE.CO", "México": "FEE.MX", "Argentina": "FEE.AR"}[conversation.country]
+    focus_card = conversation.selected_card if len(mentioned_cards) < 2 and not asking_which_card else None
     simple_benefits = selected_card_benefits and not any(
         term in lower for term in ("sala vip", "lounge", "seguro", "cobertura", "insurance", "coverage"))
-    if selected_card_benefits:
+    if focus_card:
         # Keep every relevant public topic available for a multi-part question.
         # Scope by the known card and country, never by guessed question words.
-        selected_facts = {f"BENEFIT.{conversation.selected_card.upper()}",
+        selected_facts = {f"BENEFIT.{focus_card.upper()}",
                           fee_id, "FEE.WAIVER",
                           {"Colombia": "RATE.CO", "México": "RATE.MX", "Argentina": "RATE.AR"}[conversation.country],
                           "CATALOG.IDENTITY", "MILES.HISTORY", "UNKNOWN.COST",
@@ -656,6 +677,8 @@ def respond(conversation: Conversation, message: str,
             selected_facts.add("FEE.AR_REVIEW")
         facts = [(fid, body) for fid, body in facts
                  if fid in selected_facts]
+        facts = [(fid, _focused_fee_fact(focus_card, conversation.country, body)
+                  if fid == fee_id else body) for fid, body in facts]
     if simple_benefits:
         facts = [(fid, re.sub(r" (?:No lounge visits or travel insurance are proposed\.|The travel figures are proposed comparison features, not active entitlements\.)", "", body))
                  for fid, body in facts]
@@ -723,12 +746,20 @@ def respond(conversation: Conversation, message: str,
                           "latest_question": message}, ensure_ascii=False)
     try:
         allowed = {fid for fid, _ in facts}
+        fee_amounts = None
+        if focus_card:
+            _, currency, fee_terms = _fee_comparison(conversation.country)
+            installment, threshold = fee_terms[focus_card]
+            fee_amounts = {0} if threshold is None else {12 * installment, installment, threshold}
         for attempt in range(2):
             correction = ""
             if attempt:
                 if action_retry:
                     correction = (" Your previous answer claimed an application, approval, or human assignment. "
                                   "Answer the product question using only the listed facts; do not mention an action or handoff.")
+                elif fee_amount_retry:
+                    correction = (" Your previous answer used a local-currency amount that does not belong to "
+                                  "the selected card. Check the exact fee and waiver amounts in the listed facts.")
                 else:
                     correction = (" Your previous answer omitted a requested topic. "
                                   "Answer both benefits and the requested fee or installment using the listed facts.")
@@ -744,7 +775,17 @@ def respond(conversation: Conversation, message: str,
             action_retry = bool(UNVERIFIED_ACTION.search(answer))
             fee_retry = (selected_card_benefits and asks_fee and
                          not {f"BENEFIT.{conversation.selected_card.upper()}", fee_id}.issubset(citations))
-            if not action_retry and not fee_retry:
+            if fee_amounts is not None and re.search(rf"\b{currency}\s*[\d]", message):
+                amount_pattern = (rf"\b(?:anuidade|anualidad|mensalidade|mensualidad|parcela|cuota|abono|installment)s?\b"
+                                  rf"[^.!?]{{0,45}}\b{currency}\s*([\d][\d.,]*)")
+            else:
+                amount_pattern = rf"\b{currency}\s*([\d][\d.,]*)" if fee_amounts is not None else None
+            stated_amounts = ({int(value.replace(",", "").replace(".", "")) for value in
+                               re.findall(amount_pattern, answer, flags=re.I)}
+                              if amount_pattern is not None else set())
+            fee_amount_retry = bool(fee_amounts is not None and fee_id in citations and
+                                    stated_amounts - fee_amounts)
+            if not action_retry and not fee_retry and not fee_amount_retry:
                 break
         else:
             if action_retry:

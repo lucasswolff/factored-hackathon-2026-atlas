@@ -411,6 +411,42 @@ class ConversationTests(unittest.TestCase):
         self.assertEqual(model.call_count, 2)
         self.assertIn("MXN 500", result["answer"])
 
+    def test_selected_card_fee_fact_excludes_other_card_amounts(self):
+        chat = Conversation.start("es", "México", selected_card="Summit")
+        with patch("advisor.service._generate", return_value={
+            "answer": "Summit ofrece millas y una cuota mensual máxima de MXN 500.",
+            "citations": ["BENEFIT.SUMMIT", "FEE.MX"],
+        }) as model:
+            respond(chat, "¿Qué ventajas tiene Summit y cuánto se paga cada mes?")
+        system = model.call_args.args[0]
+        self.assertIn("[FEE.MX] México: Summit maximum MXN 6,000/year in monthly MXN 500", system)
+        self.assertNotIn("MXN 150", system)
+        self.assertNotIn("[BENEFIT.REWARDS]", system)
+
+    def test_wrong_monthly_fee_amount_is_retried(self):
+        chat = Conversation.start("es", "México", selected_card="Summit")
+        with patch("advisor.service._generate", side_effect=[
+            {"answer": "Summit ofrece millas y cuesta MXN 150 por mes.",
+             "citations": ["BENEFIT.SUMMIT", "FEE.MX"]},
+            {"answer": "Summit ofrece millas y su cuota mensual máxima es MXN 500.",
+             "citations": ["BENEFIT.SUMMIT", "FEE.MX"]},
+        ]) as model:
+            result = respond(chat, "¿Qué ventajas tiene Summit y cuánto se paga cada mes?")
+        self.assertEqual(model.call_count, 2)
+        self.assertIn("amount that does not belong", model.call_args.args[0])
+        self.assertIn("MXN 500", result["answer"])
+
+    def test_customer_spend_amount_does_not_fail_fee_validation(self):
+        chat = Conversation.start("pt", "México", selected_card="Summit")
+        with patch("advisor.service._generate", return_value={
+            "answer": "Com MXN 30.000 em compras elegíveis, a parcela de MXN 500 não seria isenta "
+                      "se esse for o gasto líquido final do ciclo completo; a meta é MXN 50.000.",
+            "citations": ["FEE.MX", "FEE.WAIVER"],
+        }) as model:
+            result = respond(chat, "Com MXN 30.000 em compras, qual a mensalidade do Summit?")
+        self.assertEqual(model.call_count, 1)
+        self.assertEqual(result["route"], "ANSWER_FACT")
+
     def test_travel_details_are_available_without_inventing_partners(self):
         chat = Conversation.start("es", "Argentina", selected_card="Summit")
         with patch("advisor.service._generate", return_value={

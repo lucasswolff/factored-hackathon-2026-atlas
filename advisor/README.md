@@ -44,7 +44,10 @@ grants one-use consent and runs the check; a typed no skips it. Either way, the
 advisor then asks separately whether to record a mock application for human
 review. A typed yes to that second question writes one local
 mock application with `PENDING_REVIEW`, reads it back, and displays the verified
-reference. Asking about applying or running a precheck does not write a record.
+reference. The receipt asks whether the customer has another question. A typed
+no closes the chat and leaves the receipt visible; a typed yes invites the
+question, and a question can be asked directly. Asking about applying or
+running a precheck does not write a record.
 Asking whether a precheck is mandatory receives an informational answer. An
 explicit request to apply without a precheck goes straight to the separate
 mock-application confirmation; it does not run a policy check or write a record

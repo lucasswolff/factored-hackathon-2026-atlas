@@ -174,6 +174,54 @@ class BrowserJourneyTest(unittest.TestCase):
                 self.assertEqual(state["events"][-1]["route"], "APPLICATION_RECORDED")
                 self.assertEqual(state["application"]["status"], "PENDING_REVIEW")
 
+    def test_application_followup_can_close_or_continue_in_both_languages(self):
+        for language, country, alias, no, yes, prompt in (
+            ("es", "México", "P05", "no", "sí", "¿Tienes otra pregunta?"),
+            ("pt", "Argentina", "P03", "não", "sim", "Você tem outra pergunta?"),
+        ):
+            with self.subTest(language=language):
+                self.request("POST", "/api/start", {"entry": "direct", "country": country,
+                                                   "language": language, "alias": alias})
+                _, state = self.request("POST", "/api/chat", {"message": "Quiero solicitar Horizon"})
+                self.assertEqual(state["events"][-1]["route"], "ASK_PRECHECK_CONSENT")
+                self.request("POST", "/api/chat", {"message": no})
+                _, state = self.request("POST", "/api/chat", {"message": yes})
+                receipt = state["events"][-1]["text"]
+                application_id = state["application"]["application_id"]
+                self.assertIn(prompt, receipt)
+                self.assertIn(application_id, receipt)
+                self.assertEqual(state["pending_action"]["kind"], "post_application_followup")
+                self.assertFalse(state["conversation"]["stopped"])
+                _, state = self.request("POST", "/api/chat", {"message": yes})
+                self.assertEqual(state["events"][-1]["route"], "ASK_FOLLOWUP_QUESTION")
+                self.assertEqual(state["pending_action"]["kind"], "post_application_followup")
+                question = "¿Cuál es la cuota anual de Horizon?" if language == "es" else "Qual é a anuidade do Horizon?"
+                with patch("advisor.service._generate", return_value={"answer": "Resposta de teste", "citations": ["FEE.HORIZON"]}):
+                    _, state = self.request("POST", "/api/chat", {"message": question})
+                self.assertNotEqual(state["events"][-1]["route"], "APPLICATION_RECORDED")
+                self.assertEqual(state["application"]["application_id"], application_id)
+                self.assertIsNone(state["pending_action"])
+                _, state = self.request("POST", "/api/chat", {"message": "encerrar" if language == "pt" else "terminar"})
+                self.assertEqual(state["events"][-1]["route"], "STOP")
+                self.assertTrue(state["conversation"]["stopped"])
+                self.assertEqual(state["application"]["application_id"], application_id)
+
+    def test_application_followup_no_closes_immediately_after_receipt(self):
+        self.request("POST", "/api/start", {"entry": "direct", "country": "México",
+                                            "language": "es", "alias": "P05"})
+        _, state = self.request("POST", "/api/application-prepare", {"card": "Horizon"})
+        token = state["application_draft"]["confirmation_token"]
+        _, state = self.request("POST", "/api/application-submit", {"confirm": True,
+                                                                   "confirmation_token": token})
+        application_id = state["application"]["application_id"]
+        self.assertIn("¿Tienes otra pregunta?", state["events"][-1]["text"])
+        self.assertEqual(state["pending_action"]["kind"], "post_application_followup")
+        _, state = self.request("POST", "/api/chat", {"message": "no"})
+        self.assertEqual(state["events"][-1]["route"], "STOP")
+        self.assertTrue(state["conversation"]["stopped"])
+        self.assertEqual(state["application"]["application_id"], application_id)
+        self.assertIsNone(state["pending_action"])
+
     def test_explicit_no_precheck_request_goes_to_application_confirmation(self):
         self.request("POST", "/api/start", {"entry": "direct", "country": "México",
                                               "language": "es", "alias": "P05"})

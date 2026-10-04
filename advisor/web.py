@@ -286,7 +286,7 @@ class WebApp:
             raise
         state.application_record = record
         state.application_submission_uncertain = False
-        state.pending_action = None
+        state.pending_action = pending("post_application_followup", record["card"])
         return record
 
     def _ask_application(self, state: BrowserSession, chat: Conversation, card: str) -> dict[str, Any]:
@@ -300,7 +300,7 @@ class WebApp:
             return {"answer": answer, "citations": [], "route": "APPLICATION_EXISTS", "card": card}
         existing = self._prepare_application(state, chat, card)
         if existing:
-            state.pending_action = None
+            state.pending_action = pending("post_application_followup", card)
             return {"answer": self._application_message(existing, chat.language),
                     "citations": [], "route": "APPLICATION_RECORDED", "card": card}
         state.pending_action = pending("application_confirm", card)
@@ -455,6 +455,18 @@ class WebApp:
                              message: str) -> dict[str, Any] | None:
         action = state.pending_action
         if not action:
+            return None
+        if action["kind"] == "post_application_followup":
+            decision = choice(message)
+            if decision is False:
+                state.pending_action = None
+                return respond(chat, "encerrar" if chat.language == "pt" else "terminar",
+                               directory=self.directory)
+            if decision is True:
+                return {"answer": ("Claro. Qual é a sua pergunta?" if chat.language == "pt" else
+                                   "Claro. ¿Cuál es tu pregunta?"),
+                        "citations": [], "route": "ASK_FOLLOWUP_QUESTION"}
+            state.pending_action = None
             return None
         if expired(action) and not state.application_submission_uncertain:
             state.pending_action = None
@@ -807,9 +819,11 @@ class WebApp:
     def _application_message(record: dict[str, Any], language: str) -> str:
         if language == "pt":
             return (f"Sua solicitação do {record['card']} foi registrada para análise humana. "
-                    f"Protocolo {record['application_id']}; status PENDING_REVIEW. Ainda não há decisão de crédito.")
+                    f"Protocolo {record['application_id']}; status PENDING_REVIEW. Ainda não há decisão de crédito. "
+                    "Você tem outra pergunta? Escreva sua pergunta ou responda não para encerrar a conversa.")
         return (f"Tu solicitud de {record['card']} quedó registrada para revisión humana. "
-                f"Referencia {record['application_id']}; estado PENDING_REVIEW. Aún no hay decisión de crédito.")
+                f"Referencia {record['application_id']}; estado PENDING_REVIEW. Aún no hay decisión de crédito. "
+                "¿Tienes otra pregunta? Escríbela o responde no para terminar la conversación.")
 
     @staticmethod
     def _set_last_result(state: BrowserSession, result: dict[str, Any]) -> None:

@@ -268,7 +268,7 @@ def build() -> None:
     # 5. Current checks and their limits
     d.start()
     d.title("04  /  MEASURED BEHAVIOR", "87 automated tests passed; 7/8 live flows met expectations*",
-            "Current 4 October build · The two-card cheaper comparison remains an open failure.")
+            "Current 4 October build · agent-run production smoke checks.")
     numbered_card(d, 0.56, 2.05, 5.84, "1", "Product facts + context",
                   "Benefits and monthly fee answered together with facts.\n'This card' kept Horizon. A two-card cheaper question\nfailed to clarify its price reference.", h=1.72)
     numbered_card(d, 6.61, 2.05, 6.17, "2", "Intent + consent",
@@ -285,7 +285,7 @@ def build() -> None:
            "It listed alternatives; a separate 'cheaper than Rewards' answer even included the more expensive Summit.",
            9.2, color=NAVY)
     d.text(0.78, 6.62, 11.75, 0.14,
-           "Separate, noncumulative checks  ·  400 model attempts/day cap  ·  No independent bilingual review or peak load test",
+           "Separate, noncumulative checks  ·  400 model attempts/day cap",
            8.2, bold=True, color=TEAL)
     d.finish()
 

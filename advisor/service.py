@@ -15,7 +15,7 @@ from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-from .product_routing import ProductIntent, classify_product_intent
+from .product_routing import ProductIntent, classify_product_intent, normalize
 
 ROOT = Path(__file__).resolve().parents[1]
 FACT_VERSION = "CONV-FACTS-2026-09-30-v5"
@@ -628,12 +628,20 @@ def respond(conversation: Conversation, message: str,
         and len(mentioned_cards) < 2
         and (bool(re.search(r"\b(?:benefícios|beneficios|benefits)\b", lower)) or broad_more)
     )
+    asks_annual_fee = bool(re.search(
+        r"\b(?:anuidade|anualidade|cuota anual|tarifa anual|annual fee)\b",
+        normalize(message)))
+    fee_id = {"Colombia": "FEE.CO", "México": "FEE.MX", "Argentina": "FEE.AR"}[conversation.country]
     simple_benefits = selected_card_benefits and not any(
         term in lower for term in ("sala vip", "lounge", "seguro", "cobertura", "insurance", "coverage"))
     if selected_card_benefits:
+        selected_facts = {f"BENEFIT.{conversation.selected_card.upper()}"}
+        if not simple_benefits:
+            selected_facts.update({"TRAVEL.RULES", "UNKNOWN.TRAVEL"})
+        if asks_annual_fee:
+            selected_facts.update({fee_id, "FEE.WAIVER"})
         facts = [(fid, body) for fid, body in facts
-                 if fid == f"BENEFIT.{conversation.selected_card.upper()}" or
-                 (not simple_benefits and fid in {"TRAVEL.RULES", "UNKNOWN.TRAVEL"})]
+                 if fid in selected_facts]
     if simple_benefits:
         facts = [(fid, re.sub(r" (?:No lounge visits or travel insurance are proposed\.|The travel figures are proposed comparison features, not active entitlements\.)", "", body))
                  for fid, body in facts]
@@ -669,6 +677,7 @@ def respond(conversation: Conversation, message: str,
         "Do not call a card ideal or guaranteed suitable for a particular customer based only on a Student segment or a chat statement; enrollment is unverified. "
         "Translate 'statement credit' as 'crédito na fatura' in Portuguese or 'abono en el estado de cuenta' in Spanish. "
         "When asked about benefits, lead with the positive features of the requested card; do not list missing features unless asked. "
+        "Answer every explicit part of a multi-part question, including an annual-fee question paired with benefits. "
         "When asked which cards offer a feature, name only the cards that offer it. "
         "Do not add unrelated fees, rates, missing information, or general caveats to a benefits answer. "
         "For broad 'tell me more' questions, summarize the main benefits first and invite a question about fees or rates instead of dumping every term. "
@@ -701,9 +710,14 @@ def respond(conversation: Conversation, message: str,
     try:
         allowed = {fid for fid, _ in facts}
         for attempt in range(2):
-            correction = (" Your previous answer claimed an application, approval, or human assignment. "
-                          "Answer the product question using only the listed facts; do not mention an action or handoff."
-                          if attempt else "")
+            correction = ""
+            if attempt:
+                if action_retry:
+                    correction = (" Your previous answer claimed an application, approval, or human assignment. "
+                                  "Answer the product question using only the listed facts; do not mention an action or handoff.")
+                else:
+                    correction = (" Your previous answer omitted a requested topic. "
+                                  "Answer both benefits and annual fee using the listed facts.")
             if before_model_call is not None:
                 before_model_call()
             result = _generate(system + correction, context, model)
@@ -713,15 +727,25 @@ def respond(conversation: Conversation, message: str,
                 raise RuntimeError("Invalid model answer or citation")
             answer, citations, route = result["answer"].strip(), result["citations"], "ANSWER_FACT"
             unresolved = result.get("unresolved", False)
-            if not UNVERIFIED_ACTION.search(answer):
+            action_retry = bool(UNVERIFIED_ACTION.search(answer))
+            fee_retry = (selected_card_benefits and asks_annual_fee and
+                         not {f"BENEFIT.{conversation.selected_card.upper()}", fee_id}.issubset(citations))
+            if not action_retry and not fee_retry:
                 break
         else:
-            answer = ("Posso ajudar com os cartões e com uma avaliação inicial mediante seu consentimento. "
-                      "Nenhuma nova solicitação foi registrada nesta resposta."
-                      if conversation.language == "pt" else
-                      "Puedo ayudarte con las tarjetas y una evaluación inicial con tu consentimiento. "
-                      "No se registró ninguna solicitud nueva en esta respuesta.")
-            citations, route, unresolved = [], "SERVICE_BOUNDARY", False
+            if action_retry:
+                answer = ("Posso ajudar com os cartões e com uma avaliação inicial mediante seu consentimento. "
+                          "Nenhuma nova solicitação foi registrada nesta resposta."
+                          if conversation.language == "pt" else
+                          "Puedo ayudarte con las tarjetas y una evaluación inicial con tu consentimiento. "
+                          "No se registró ninguna solicitud nueva en esta respuesta.")
+                route = "SERVICE_BOUNDARY"
+            else:
+                answer = ("Não consigo verificar uma resposta completa agora. Pergunte novamente mais tarde."
+                          if conversation.language == "pt" else
+                          "No puedo verificar una respuesta completa ahora. Inténtalo más tarde.")
+                route = "FALLBACK"
+            citations, unresolved = [], False
     except (RuntimeError, ValueError, json.JSONDecodeError):
         answer = ("Não consigo verificar uma resposta segura agora. Pergunte novamente mais tarde."
                   if conversation.language == "pt" else "No puedo verificar una respuesta segura ahora. Inténtalo más tarde.")

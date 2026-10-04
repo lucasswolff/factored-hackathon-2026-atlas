@@ -323,6 +323,41 @@ class ConversationTests(unittest.TestCase):
         self.assertNotIn("[BENEFIT.REWARDS]", system)
         self.assertIn("[UNKNOWN.TRAVEL]", system)
 
+    def test_benefits_and_annual_fee_keep_both_topics_in_context(self):
+        examples = (
+            ("pt", "México", "quais os beneficios deste cartão e qual a anualidade?", "FEE.MX"),
+            ("es", "Colombia", "¿Qué beneficios tiene y cuál es la cuota anual?", "FEE.CO"),
+            ("pt", "Argentina", "Quais os benefícios e a anuidade?", "FEE.AR"),
+        )
+        for language, country, question, fee_id in examples:
+            with self.subTest(language=language, country=country):
+                chat = Conversation.start(language, country, selected_card="Summit")
+                with patch("advisor.service._generate", return_value={
+                    "answer": "Summit oferece benefícios e tem uma anuidade informada nos termos.",
+                    "citations": ["BENEFIT.SUMMIT", fee_id, "FEE.WAIVER"],
+                }) as model:
+                    result = respond(chat, question)
+                self.assertEqual(result["route"], "ANSWER_FACT")
+                system = model.call_args.args[0]
+                for fact in ("BENEFIT.SUMMIT", fee_id, "FEE.WAIVER"):
+                    self.assertIn(f"[{fact}]", system)
+                self.assertNotIn("[BENEFIT.REWARDS]", system)
+
+    def test_combined_question_retries_answer_that_omits_annual_fee(self):
+        chat = Conversation.start("pt", "México", selected_card="Summit")
+        with patch("advisor.service._generate", side_effect=[
+            {"answer": "Summit oferece milhas e acesso a salas VIP; não tenho a anuidade.",
+             "citations": ["BENEFIT.SUMMIT"]},
+            {"answer": "Summit oferece milhas e acesso a salas VIP. A anuidade máxima é MXN 6.000, "
+                       "em parcelas de MXN 500, com dispensa condicional.",
+             "citations": ["BENEFIT.SUMMIT", "FEE.MX", "FEE.WAIVER"]},
+        ]) as model:
+            result = respond(chat, "quais os beneficios deste cartão e qual a anualidade?")
+        self.assertEqual(model.call_count, 2)
+        self.assertIn("omitted a requested topic", model.call_args.args[0])
+        self.assertIn("MXN 6.000", result["answer"])
+        self.assertEqual(result["citations"], ["BENEFIT.SUMMIT", "FEE.MX", "FEE.WAIVER"])
+
     def test_travel_details_are_available_without_inventing_partners(self):
         chat = Conversation.start("es", "Argentina", selected_card="Summit")
         with patch("advisor.service._generate", return_value={

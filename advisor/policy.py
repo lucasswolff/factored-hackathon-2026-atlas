@@ -49,6 +49,8 @@ def suggest(profile: Profile) -> PolicyResult:
         return PolicyResult("Campus", "SUGGESTED_FOR_DISCUSSION", ("student_segment_unverified_enrollment",), ())
     if profile.score >= MIN_SCORE["Horizon"] and MIN_INCOME[profile.country]["Horizon"] <= profile.monthly_income < MIN_INCOME[profile.country]["Rewards"]:
         return PolicyResult("Horizon", "SUGGESTED_FOR_DISCUSSION", ("entry_income_and_score_band",), ())
+    if profile.score < MIN_SCORE["Horizon"]:
+        return PolicyResult("", "NO_SUGGESTION", ("score_below_suggestion_band",), ())
     return PolicyResult("", "NO_SUGGESTION", ("profile_needs_human_review",), ())
 
 

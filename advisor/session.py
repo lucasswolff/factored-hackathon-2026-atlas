@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from .data_access import DemoDirectory
-from .policy import CARDS, PolicyResult, precheck, suggest
+from .policy import CARDS, MIN_SCORE, PolicyResult, precheck, suggest
 from .service import Conversation, FACT_VERSION
 
 REASONS = {
@@ -16,7 +16,8 @@ REASONS = {
     "student_segment_unverified_enrollment": ("El segmento Student solo sirve para conversar sobre Campus; no prueba inscripción.", "O segmento Student serve apenas para conversar sobre o Campus; não comprova matrícula."),
     "student_status_unverified": ("Campus es solo para estudiantes; este perfil no registra el segmento Student y necesita verificación humana.", "O Campus é apenas para estudantes; este perfil não registra o segmento Student e precisa de verificação humana."),
     "customer_not_active": ("El cliente no figura como activo en la instantánea.", "O cliente não consta como ativo na captura."),
-    "profile_needs_human_review": ("Los datos disponibles no respaldan una sugerencia automática; se necesita revisión humana.", "Os dados disponíveis não sustentam uma sugestão automática; é necessária revisão humana."),
+    "profile_needs_human_review": ("El puntaje y el ingreso estimado no coinciden con una misma banda de sugerencia de esta simulación; se necesita revisión humana.", "A pontuação e a renda estimada não se encaixam juntas em uma faixa de sugestão desta simulação; é necessária revisão humana."),
+    "score_below_suggestion_band": ("El puntaje registrado no alcanzó la banda de sugerencia de esta simulación; se necesita revisión humana.", "A pontuação registrada não alcançou a faixa de sugestão desta simulação; é necessária revisão humana."),
     "country_income_and_score_band": ("El puntaje y el ingreso estimado entran en la banda local de conversación.", "A pontuação e a renda estimada entram na faixa local de conversa."),
     "entry_income_and_score_band": ("El puntaje y el ingreso estimado entran en la banda inicial local.", "A pontuação e a renda estimada entram na faixa inicial local."),
     "synthetic_thresholds_met": ("Se cumplen los umbrales de la evaluación inicial.", "Os limites da avaliação inicial foram atendidos."),
@@ -126,7 +127,25 @@ def recommendation_for_session(chat: Conversation, directory: DemoDirectory) -> 
     result = suggest(profile)
     if result.status == "SUGGESTED_FOR_DISCUSSION":
         chat.selected_card = result.card
-    return {"answer": _format_result(result, chat.language), "citations": [],
+    answer = _format_result(result, chat.language)
+    if result.status == "NO_SUGGESTION":
+        if chat.language == "pt":
+            prefix = f"Usei o perfil de demonstração selecionado ({chat.demo_alias}). "
+            suffix = " Isso não é uma recusa de crédito. Posso mostrar as condições dos cartões ou registrar um pedido de análise humana."
+        else:
+            prefix = f"Usé el perfil de demostración seleccionado ({chat.demo_alias}). "
+            suffix = " Esto no es una denegación de crédito. Puedo mostrar las condiciones de las tarjetas o registrar una solicitud de revisión humana."
+        if "score_below_suggestion_band" in result.reasons:
+            if chat.language == "pt":
+                detail = (f" A pontuação estimada deste perfil é {profile.score}; a faixa de sugestão do Horizon "
+                          f"começa em {MIN_SCORE['Horizon']}.")
+            else:
+                detail = (f" El puntaje estimado de este perfil es {profile.score}; la banda de sugerencia de Horizon "
+                          f"comienza en {MIN_SCORE['Horizon']}.")
+        else:
+            detail = ""
+        answer = prefix + answer + detail + suffix
+    return {"answer": answer, "citations": [],
             "route": "POLICY_SUGGESTION", "policy": result, "fact_version": FACT_VERSION}
 
 

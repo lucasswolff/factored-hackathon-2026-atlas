@@ -59,7 +59,8 @@ application path begins. Ending the conversation clears a pending confirmation
 without denying a mock application that was already recorded.
 An isolated "quero"/"quiero" after card discussion prompts a short clarification;
 after an explicit offer to explain fees or conditions, it instead continues
-that product explanation. "Conhecer as opções" exits a pending application
+that product explanation, including offers phrased as a statement rather than
+a question. "Conhecer as opções" exits a pending application
 choice, and "desejo" confirms only an explicit pending mock-application question.
 "gostei, vou querer" proceeds to the consent question without a model call.
 Questions such as "eu teria crédito para o Summit?" route to the local,

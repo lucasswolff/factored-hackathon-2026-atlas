@@ -381,6 +381,26 @@ class BrowserJourneyTest(unittest.TestCase):
         self.assertIsNone(state["application_draft"])
         self.assertEqual(state["conversation"]["selected_card"], "Campus")
 
+    def test_yes_continues_fee_offer_even_when_it_ends_with_a_period(self):
+        self.request("POST", "/api/start", {"entry": "offer", "selected_card": "Horizon",
+                                             "country": "México", "language": "pt", "alias": "P05"})
+        with patch("advisor.service._generate", side_effect=[
+            {"answer": ("O Horizon não tem anuidade e oferece 1% de crédito na fatura. "
+                        "Posso te contar mais sobre taxas ou juros, se quiser."),
+             "citations": ["BENEFIT.HORIZON"]},
+            {"answer": "O Horizon não tem anuidade; os juros de compras dependem do saldo não pago.",
+             "citations": ["FEE.MX", "RATE.MX"]},
+        ]) as model:
+            self.request("POST", "/api/chat", {"message": "Quais são os benefícios deste cartão?"})
+            _, state = self.request("POST", "/api/chat", {"message": "sim"})
+        self.assertEqual(state["events"][-1]["route"], "ANSWER_FACT")
+        self.assertIn("juros", state["events"][-1]["text"])
+        self.assertIsNone(state["pending_action"])
+        self.assertEqual(model.call_count, 2)
+        context = json.loads(model.call_args_list[1].args[1])
+        self.assertIn("anuidade", context["latest_question"])
+        self.assertIn("Horizon", context["latest_question"])
+
     def test_information_choice_clears_application_intent(self):
         self.request("POST", "/api/start", {"entry": "direct", "country": "Colombia", "language": "pt", "alias": "P01"})
         _, state = self.request("POST", "/api/chat", {"message": "quero"})

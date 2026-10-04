@@ -744,9 +744,19 @@ class WebApp:
                 if state.application_submission_uncertain:
                     raise PermissionError("Application outcome is unverified; confirm the same request first")
                 expanded = self._expanded_product_followup(state, chat, message)
+                ambiguous_card_request = (
+                    len(state.topic_cards) > 1 and not mentioned and
+                    re.search(r"\b(?:quero|desejo|quiero|deseo|solicitar|pedir)\b", plain_text(message)) and
+                    re.search(r"\b(?:este|esse|esta|essa|ese|esa|this|that)\s+"
+                              r"(?:cartao|tarjeta|card)\b", plain_text(message)))
                 last_assistant = next((event for event in reversed(state.events)
                                        if event["role"] == "assistant"), None)
-                if expanded:
+                if ambiguous_card_request:
+                    result = {"answer": ("Qual cartão você quer solicitar: Campus, Horizon, Rewards ou Summit?"
+                                         if chat.language == "pt" else
+                                         "¿Qué tarjeta quieres solicitar: Campus, Horizon, Rewards o Summit?"),
+                              "citations": [], "route": "ASK_CARD", "wants_application": True}
+                elif expanded:
                     result = self.limited_respond(chat, expanded)
                 elif (plain_text(message) in {"quero", "quiero", "sim", "si"} and
                       last_assistant and last_assistant.get("route") == "ANSWER_FACT"):

@@ -38,6 +38,9 @@ UNVERIFIED_ACTION = re.compile(
     r"\b(?:j[aá]\s+)?(?:encaminhei|enviei|registrei|envi[eé]|registr[eé]|deriv[eé])\b|"
     r"\b(?:solicita[cç][aã]o|solicitud|pedido)\s+(?:foi|est[aá]|qued[oó]|se ha)\s+(?:registrad|enviad|encaminhad)|"
     r"\b(?:solicita[cç][aã]o|solicitud|pedido|cart[aã]o|tarjeta)\s+(?:foi|fue|est[aá]|qued[oó])\s+(?:aprovad|aprobad|aceitad)|"
+    r"\b(?:confirma[cç][aã]o|confirmaci[oó]n)\s+(?:j[aá]\s+)?(?:foi|fue|est[aá])?\s*registrad|"
+    r"\b(?:aguardar|esperar)\s+(?:o|el)?\s*(?:encaminhamento|tr[aá]mite|env[ií]o)|"
+    r"\b(?:solicita[cç][aã]o|solicitud|pedido|cart[aã]o|tarjeta)\s+(?:foi|fue|est[aá]|qued[oó])\s+(?:aprovad|aprobad|aceitad)|"
     r"\b(?:te|lhe)\s+(?:asign[eé]|atribu[ií])\b|"
     r"\b(?:entrar[aã]o|entraremos|se pondr[aá]n)\s+en?\s+contacto|"
     r"\b(?:entrar[aã]o|entraremos)\s+em\s+contato",
@@ -477,6 +480,8 @@ def respond(conversation: Conversation, message: str,
                                 "quiero esta tarjeta", "vou querer esse", "vou querer este",
                                 "vou querer essa", "vou querer esta", "me quedo con", "i'll take it",
                                 "i want this card")) or bool(re.search(
+        r"\b(?:quero|desejo|quiero|deseo)\s+(?:(?:o|a|el|la|este|esta|esse|essa|ese|esa)\s+)?"
+        r"(?:cart[aã]o|tarjeta)\b", lower)) or bool(re.search(
         r"\b(?:vou querer|lo quiero)(?:\s+(?:(?:o|a|el|la|esse|esta)\s+)?(?:cart[aã]o|tarjeta|campus|horizon|rewards|summit))?\s*[.!]?\s*$",
         lower))
     if conversation.demo_alias and conversation.selected_card and lower in {"quero", "quiero", "i want it"}:

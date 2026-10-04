@@ -133,6 +133,32 @@ class ConversationTests(unittest.TestCase):
             self.assertTrue(purchase["wants_application"])
             self.assertEqual(purchase["card"], "Rewards")
 
+    def test_want_a_named_or_referenced_card_routes_locally_in_both_languages(self):
+        for language, message, card in (
+            ("pt", "quero o cartao summit", "Summit"),
+            ("pt", "quero este cartão", "Horizon"),
+            ("es", "quiero la tarjeta Summit", "Summit"),
+            ("es", "quiero esta tarjeta", "Horizon"),
+        ):
+            with self.subTest(message=message):
+                chat = Conversation.start(language, "México", selected_card="Horizon")
+                chat.demo_alias = "P05"
+                with patch("advisor.service._generate", side_effect=AssertionError("application intent must stay local")):
+                    result = respond(chat, message)
+                self.assertEqual(result["route"], "ASK_PRECHECK_CONSENT")
+                self.assertEqual(result["card"], card)
+                self.assertTrue(result["wants_application"])
+
+    def test_model_cannot_claim_confirmation_was_recorded(self):
+        chat = Conversation.start("pt", "México", selected_card="Summit")
+        false_receipt = {"answer": "Essa confirmação já foi registrada; agora é só aguardar o encaminhamento.",
+                         "citations": ["CATALOG.IDENTITY"], "unresolved": False}
+        with patch("advisor.service._generate", return_value=false_receipt) as model:
+            result = respond(chat, "Gostei da explicação")
+        self.assertEqual(model.call_count, 2)
+        self.assertEqual(result["route"], "SERVICE_BOUNDARY")
+        self.assertIn("Nenhuma nova solicitação foi registrada", result["answer"])
+
     def test_want_more_information_is_not_application_intent(self):
         chat = Conversation.start("pt", "Colombia", "CMP-NM2UHJMKPA0C")
         chat.demo_alias = "P04"

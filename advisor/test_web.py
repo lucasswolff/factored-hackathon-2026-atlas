@@ -302,6 +302,45 @@ class BrowserJourneyTest(unittest.TestCase):
                 (state["application"]["application_id"],)).fetchone()
         self.assertEqual((card, source), ("Summit", campaign_id))
 
+    def test_switch_from_horizon_comparison_to_summit_submission(self):
+        self.request("POST", "/api/start", {"entry": "offer", "selected_card": "Horizon",
+                                            "country": "México", "language": "pt", "alias": "P05"})
+        with patch("advisor.service._generate", side_effect=AssertionError("application intent must stay local")):
+            _, state = self.request("POST", "/api/chat", {"message": "Quero solicitar este cartão"})
+            self.assertEqual(state["pending_action"], {"kind": "precheck_choice", "card": "Horizon"})
+            _, state = self.request("POST", "/api/chat", {"message": "não"})
+            self.assertEqual(state["pending_action"], {"kind": "application_confirm", "card": "Horizon"})
+            _, state = self.request("POST", "/api/chat", {"message": "não"})
+            self.assertIsNone(state["application"])
+            _, state = self.request("POST", "/api/chat", {"message": "quero outro cartao"})
+            self.assertEqual(state["events"][-1]["route"], "ANSWER_FACT")
+            self.assertIn("Summit", state["events"][-1]["text"])
+            _, state = self.request("POST", "/api/chat", {"message": "Quero solicitar este cartão"})
+            self.assertEqual(state["events"][-1]["route"], "ASK_CARD")
+            self.assertIsNone(state["application_draft"])
+            _, state = self.request("POST", "/api/chat", {"message": "quero o cartao summit"})
+            self.assertEqual(state["pending_action"], {"kind": "precheck_choice", "card": "Summit"})
+            self.assertEqual(state["conversation"]["selected_card"], "Summit")
+            _, state = self.request("POST", "/api/chat", {"message": "sim"})
+            self.assertEqual(state["pending_action"], {"kind": "application_confirm", "card": "Summit"})
+            self.assertIsNone(state["application"])
+            _, state = self.request("POST", "/api/chat", {"message": "sim"})
+        self.assertEqual(state["events"][-1]["route"], "APPLICATION_RECORDED")
+        self.assertEqual(state["application"]["card"], "Summit")
+        self.assertEqual(state["application"]["status"], "PENDING_REVIEW")
+        self.assertIn(state["application"]["application_id"], state["events"][-1]["text"])
+
+    def test_named_card_request_replaces_pending_horizon_precheck(self):
+        self.request("POST", "/api/start", {"entry": "offer", "selected_card": "Horizon",
+                                            "country": "México", "language": "pt", "alias": "P05"})
+        with patch("advisor.service._generate", side_effect=AssertionError("application intent must stay local")):
+            self.request("POST", "/api/chat", {"message": "Quero solicitar este cartão"})
+            _, state = self.request("POST", "/api/chat", {"message": "quero o cartao summit"})
+        self.assertEqual(state["pending_action"], {"kind": "precheck_choice", "card": "Summit"})
+        self.assertEqual(state["conversation"]["selected_card"], "Summit")
+        self.assertIsNone(state["application"])
+        self.assertIsNone(state["application_draft"])
+
     def test_chat_can_skip_precheck_and_confirm_application(self):
         self.request("POST", "/api/start", {"entry": "campaign", "campaign_id": "CMP-I5TGQ4SXP4EG", "country": "Colombia", "language": "es", "alias": "P04"})
         with patch("advisor.service._generate", side_effect=AssertionError("confirmation must remain local")):

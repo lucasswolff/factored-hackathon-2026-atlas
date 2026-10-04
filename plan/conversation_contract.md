@@ -10,6 +10,9 @@ browser UI creates confirmed local mock applications with read-back through
 chat. Asking about applying leads to an optional, separately consented card
 precheck and then a distinct application confirmation. Typed yes/no replies
 control each transition; vague replies and expired prompts never create a record.
+After a verified mock application, the advisor asks whether the customer has
+another question. No closes the conversation while retaining the receipt;
+yes invites a question, and a direct question continues the chat.
 Customer requests for a person are stored with read-back and shown in the
 review queue. Unanswerable product questions offer the same path after an
 explicit yes. A private organizer roster supplies a mock agent ID, with chat

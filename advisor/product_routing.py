@@ -33,6 +33,10 @@ def classify_product_intent(message: str, selected_card: str | None,
     words = set(plain.split())
     asks_recommendation = any(word.startswith(("recomend", "recomiend", "suger", "sugest", "indic"))
                               for word in words)
+    asks_recommendation = asks_recommendation or (
+        any(word in words for word in ("melhor", "mejor", "best"))
+        and any(word in words for word in ("cartao", "tarjeta", "card"))
+        and any(phrase in plain for phrase in ("para mim", "para mi", "for me")))
     product_words = any(word.startswith(("carta", "tarjeta", "card", "opca", "opci", "alternativ"))
                         for word in words)
     asks_alternative = (any(word.startswith(("outr", "otr", "other", "alternativ", "diferent"))

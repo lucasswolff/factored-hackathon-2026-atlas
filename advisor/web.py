@@ -33,7 +33,8 @@ from .chat_flow import (application_choice, application_question, choice, expire
 from .data_access import DemoDirectory
 from .policy import CARDS, OFFER_VERSION
 from .product_routing import classify_product_intent
-from .service import CAMPAIGNS, FACT_VERSION, PRIVATE_INPUT, Conversation, respond, wants_human
+from .service import (CAMPAIGNS, FACT_VERSION, PRIVATE_INPUT, Conversation, respond,
+                      requests_card_cancellation, wants_human)
 from .session import (grant_precheck_consent, grant_profile_permission,
                       profile_summary, recommendation_for_session, run_precheck,
                       select_demo_persona, sign_out)
@@ -51,7 +52,7 @@ STATIC = {"/": ("index.html", "text/html; charset=utf-8"),
           "/assets/review.js": ("review.js", "text/javascript; charset=utf-8")}
 SESSION_SECONDS = 2 * 60 * 60
 RATE_WINDOW_SECONDS = 10 * 60
-MAX_REQUESTS_PER_WINDOW = 60
+MAX_REQUESTS_PER_WINDOW = 120
 MAX_ANSWER_CALLS_PER_DAY = 200
 
 
@@ -147,7 +148,7 @@ class WebApp:
         now = time.time()
         state.request_times = [t for t in state.request_times if now - t < RATE_WINDOW_SECONDS]
         if len(state.request_times) >= MAX_REQUESTS_PER_WINDOW:
-            raise DemoLimitError("Too many requests; try again later")
+            raise DemoLimitError("Too many requests in this session; try again within 10 minutes")
         state.request_times.append(now)
 
     def session(self, cookie_header: str | None, *, touch: bool = False) -> tuple[str, BrowserSession, bool]:
@@ -457,6 +458,10 @@ class WebApp:
 
     def _handle_pending_chat(self, state: BrowserSession, chat: Conversation,
                              message: str) -> dict[str, Any] | None:
+        if requests_card_cancellation(message) and not state.application_submission_uncertain:
+            state.pending_action = None
+            state.application_draft = None
+            return respond(chat, message, directory=self.directory)
         action = state.pending_action
         if not action:
             return None
@@ -767,6 +772,10 @@ class WebApp:
                               "citations": [], "route": "CLARIFY"}
                 elif expanded:
                     result = self.limited_respond(chat, expanded)
+                elif (last_assistant and last_assistant.get("route") == "POLICY_SUGGESTION" and
+                      (plain_text(message) in {"ok", "okay", "entendi", "entiendo", "certo"} or
+                       (chat.selected_card is None and choice(message) is True))):
+                    result = self._options_overview(chat.language)
                 elif (plain_text(message) in {"quero", "quiero", "sim", "si"} and
                       last_assistant and last_assistant.get("route") == "ANSWER_FACT"):
                     result = {"answer": ("Claro. Sobre qual cartão ou condição você gostaria de saber mais?"

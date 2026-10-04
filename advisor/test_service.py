@@ -37,6 +37,7 @@ class ConversationTests(unittest.TestCase):
     def test_sonnet_uses_low_effort_and_haiku_omits_it(self):
         wire = {"content": [{"type": "text", "text": json.dumps(
             {"answer": "OK", "citations": [], "unresolved": False,
+             "application_request": "NONE",
              "comparison": {"kind": "NONE", "reference_card": "", "requires_travel_benefits": False}})}]}
         class Response(io.BytesIO):
             def __enter__(self):
@@ -51,6 +52,19 @@ class ConversationTests(unittest.TestCase):
             haiku = json.loads(opened.call_args.args[0].data)
         self.assertEqual(sonnet["output_config"]["effort"], "low")
         self.assertNotIn("effort", haiku["output_config"])
+
+    def test_model_cannot_invent_application_confirmation(self):
+        chat = Conversation.start("es", "Colombia", selected_card="Horizon")
+        invented = {"answer": "Confírmame y quedará registrada tu solicitud.",
+                    "citations": ["CATALOG.IDENTITY"], "unresolved": False,
+                    "application_request": "NONE",
+                    "comparison": {"kind": "NONE", "reference_card": "",
+                                   "requires_travel_benefits": False}}
+        with patch("advisor.service._generate", return_value=invented) as model:
+            result = respond(chat, "Cuéntame sobre Horizon")
+        self.assertEqual(result["route"], "SERVICE_BOUNDARY")
+        self.assertNotIn("Confírmame", result["answer"])
+        self.assertEqual(model.call_count, 2)
 
     def test_campaign_attribution_is_fixed_and_anonymous(self):
         chat = Conversation.start("es", "Colombia", "CMP-YYT37NY1CZS7")

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1080" viewBox="0 0 1440 1080" role="img" aria-labelledby="title description">
   <title id="title">Hosted credit advisor architecture</title>
-  <desc id="description">Visitors enter through a campaign card or direct visit, select a fictional demo customer, and chat in Spanish or Portuguese. A Lambda Function URL passes requests to a server-owned conversation service. Routing uses versioned public facts and optionally Claude; profile suggestions and simulated prechecks use deterministic local rules. Confirmed mock applications and human-review handoffs are written to DynamoDB and verified by read-back. A protected reviewer page displays stored actions and the handoff conversation thread. The filtered agent roster is a snapshot, not live employee availability.</desc>
+  <desc id="description">Visitors enter through a campaign card or direct visit, select a fictional demo customer, and chat in Spanish or Portuguese. A Lambda Function URL passes requests to a server-owned conversation service. Claude Haiku classifies fresh intent; Claude Sonnet answers many public fact questions. Profile suggestions and simulated prechecks use deterministic local rules. Confirmed mock applications and human-review handoffs are written to DynamoDB and verified by read-back. A protected reviewer page displays stored actions and the handoff conversation thread. The filtered agent roster is a snapshot, not live employee availability.</desc>
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth"><path d="M1 1 L9 5 L1 9 Z" fill="#526579"/></marker>
     <style>
@@ -72,7 +72,7 @@
   <text x="406" y="514" class="head">Public product answers</text>
   <text x="406" y="542" class="body">Known rules answered in code</text>
   <text x="406" y="566" class="body">Other questions use public facts</text>
-  <text x="406" y="590" class="body">Claude returns text + fact IDs</text>
+  <text x="406" y="590" class="body">Sonnet returns text + fact IDs</text>
   <text x="406" y="614" class="body">Unknown → offer human review</text>
   <text x="406" y="638" class="small">No private profile sent to Claude</text>
 
@@ -106,9 +106,9 @@
 
   <rect x="318" y="722" width="250" height="134" rx="14" class="purple"/>
   <text x="336" y="750" class="head">Claude API</text>
-  <text x="336" y="778" class="body">Public product answers only</text>
-  <text x="336" y="801" class="body">Safe fallback on failure</text>
-  <text x="336" y="827" class="small">Shared daily attempt cap</text>
+  <text x="336" y="778" class="body">Haiku: bounded intent choice</text>
+  <text x="336" y="801" class="body">Sonnet: public fact answers</text>
+  <text x="336" y="827" class="small">Safe fallback; 400 attempts/day</text>
 
   <rect x="596" y="722" width="250" height="134" rx="14" class="green"/>
   <text x="614" y="750" class="head">Fictional fixtures</text>

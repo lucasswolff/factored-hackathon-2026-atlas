@@ -233,12 +233,12 @@ def build() -> None:
 
     # 4. Architecture
     d.start()
-    d.title("03  /  HOW IT WORKS", "The model answers; the service controls actions",
-            "A server-owned state machine separates conversation from policy, permissions, and durable outcomes.")
+    d.title("03  /  HOW IT WORKS", "Claude routes and answers; the service controls actions",
+            "A bounded intent choice comes before service-owned policy, consent, and durable outcomes.")
     for x, w, head, body, fill in [
         (0.56, 2.34, "Browser", "Campaign / direct entry\nFictional fixture", PALE_BLUE),
         (3.23, 2.52, "Lambda service", "HTTPS API + session\nProtected review route", WHITE),
-        (6.08, 3.06, "Conversation router", "Active card + intent\nConsent + confirmation", PALE),
+        (6.08, 3.06, "Conversation router", "Haiku: bounded intent\nService validates session", PALE),
     ]:
         d.rect(x, 2.15, w, 1.22, fill, stroke=LINE, radius=0.14)
         d.text(x + 0.2, 2.36, w - 0.4, 0.28, head, 16, bold=True)
@@ -251,7 +251,7 @@ def build() -> None:
     d.text(9.19, 2.53, 0.25, 0.3, "→", 21, color=TEAL)
 
     for x, w, head, body, fill in [
-        (0.56, 3.75, "Product answers", "Versioned facts → Claude when needed\nCitations checked; unknown → offer review", WHITE),
+        (0.56, 3.75, "Product answers", "Sonnet + versioned public facts\nCitations checked; unknown → offer review", WHITE),
         (4.48, 3.75, "Deterministic policy", "Fixture-bound suggestions\nConsented synthetic precheck\nThe model cannot approve credit", PALE),
         (8.40, 4.38, "Verified actions + reviewer", "Confirmation → write once → read back\nApplication: PENDING_REVIEW\nFull-thread handoff; bot pauses", "FFF3E8"),
     ]:
@@ -265,21 +265,21 @@ def build() -> None:
            11.5, bold=True, color=WHITE)
     d.finish()
 
-    # 5. Operational discipline
+    # 5. Current checks and their limits
     d.start()
-    d.title("04  /  OPERATING DISCIPLINE", "Built with controlled actions and a safe fallback",
-            "The deployed demo keeps customer data, model answers, and verified actions within distinct boundaries.")
-    numbered_card(d, 0.56, 2.05, 5.84, "1", "Security + privacy",
-                  "Public app has fictional fixtures; server-bound sessions.\nReviewer code is separate. Secrets stay in SSM; no raw\norganizer customer rows are sent to Claude.", h=1.72)
-    numbered_card(d, 6.61, 2.05, 6.17, "2", "Reliability + audit",
-                  "12/12 journey checks; 3/3 mock application read-backs.\nIdempotent writes and safe model fallback. CloudWatch\nrecords sanitized route/status metrics and alarms.", h=1.72)
-    numbered_card(d, 0.56, 4.02, 5.84, "3", "Scalability",
-                  "Lambda + on-demand DynamoDB keep compute and state\nseparate. Shared sessions support concurrent requests.\nSix-visitor check: 24/24 requests; no peak load test.", h=1.72)
-    numbered_card(d, 6.61, 4.02, 6.17, "4", "Human oversight",
-                  "Unanswered questions offer human review. After\nconfirmation, the same chat and verified context are\nstored with a roster assignee; the bot pauses.", h=1.72)
+    d.title("04  /  MEASURED BEHAVIOR", "Live checks show progress and a remaining failure",
+            "4 October production smoke probes are separate from the earlier paired evaluation and judge rehearsal.")
+    numbered_card(d, 0.56, 2.05, 5.84, "1", "Product facts + context",
+                  "Benefits and monthly fee answered together with facts.\n'This card' kept Horizon. A two-card cheaper question\nfailed to clarify its price reference.", h=1.72)
+    numbered_card(d, 6.61, 2.05, 6.17, "2", "Intent + consent",
+                  "Negation then application reached card-specific consent.\nAn unnamed other card triggered card choice. Declined\nprecheck never created an application by itself.", h=1.72)
+    numbered_card(d, 0.56, 4.02, 5.84, "3", "Profile + service boundaries",
+                  "Student suggestion named fixture and unverified status.\nExisting-card cancellation was refused. A second\napplication was blocked before another precheck.", h=1.72)
+    numbered_card(d, 6.61, 4.02, 6.17, "4", "Evidence + capacity",
+                  "7/8 live smoke scenarios met expectation; 87 local tests\npassed. Shared cap: 400 model attempts per UTC day.\nNo independent bilingual quality result yet.", h=1.72)
     d.rect(0.56, 6.18, 12.22, 0.55, PALE, stroke=LINE, radius=0.11)
     d.text(0.78, 6.35, 11.75, 0.24,
-           "Prototype boundary: the roster does not show live availability, and no employee reply or bank decision is connected.",
+           "Separate earlier rehearsal: 12/12 entry paths, 3/3 stored applications, 24/24 requests from six visitors; no peak load test.",
            10.3, bold=True, color=TEAL)
     d.finish()
 

@@ -41,6 +41,16 @@ agent-authored, and a safety fix followed the first run. Treat the final
 numbers as a post-fix regression, not independent held-out quality evidence.
 The next gate remains independent bilingual review of new cases and answers.
 
+The later [production conversation checks](live_conversation_checks_2026-10-04.md)
+exercise eight additional flow families on the model-first deployment. Seven
+met their expected behavior; a cheaper-card request after discussing two cards
+failed to clarify the price reference, and another explicit comparison included
+a more expensive card. This remains an open answer-routing issue for the next
+fix and independent bilingual review. The deployed build has a shared ceiling
+of 400 provider attempts per UTC day, which is a usage guardrail rather than a
+dollar budget. The 87 passing source-data-free advisor tests include local
+fault injection, not real cloud outage recovery.
+
 ## Priority 0 — make a judge-accessible prototype safely
 
 1. **Choose the data boundary.** Confirm the organizer's data-use terms before

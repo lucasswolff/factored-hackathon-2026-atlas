@@ -40,10 +40,12 @@ storage. Security boundaries and pending consent/application questions remain
 service-owned. On classifier failure in the hosted build, the service stops
 before starting an action; the offline CLI retains its legacy local router.
 Public product questions can require a Haiku classification followed by a
-Sonnet fact answer, using two shared model attempts. This reduces the number
-of conversations supported by the hosted daily model-attempt cap until the
-route and answer are combined or a separately budgeted classifier is adopted.
-The classifier still needs independent bilingual paraphrase evaluation.
+Sonnet fact answer, using two shared model attempts. The configured 200-answer
+budget now allows up to 400 provider attempts per UTC day; this is still a
+finite shared cap and increases possible provider usage. The classifier still
+needs independent bilingual paraphrase evaluation; a [production smoke
+check](../docs/live_conversation_checks_2026-10-04.md) found that ambiguous
+two-card lower-cost comparisons remain unreliable.
 "Best card for me" questions use the selected demo fixture's profile. The
 service reads it after persona selection and applies the synthetic policy
 locally; these answers do not call Claude or send score, income, or policy

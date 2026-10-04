@@ -736,8 +736,14 @@ def respond(conversation: Conversation, message: str,
     if conversation.demo_alias and (application_intent or precheck_request):
         card = action_card
         if card is None:
-            answer = ("Claro. Qual cartão você gostaria de avaliar: Campus, Horizon, Rewards ou Summit?"
-                      if conversation.language == "pt" else "Claro. ¿Qué tarjeta te gustaría evaluar: Campus, Horizon, Rewards o Summit?")
+            if application_intent:
+                answer = ("Qual cartão você quer solicitar: Campus, Horizon, Rewards ou Summit?"
+                          if conversation.language == "pt" else
+                          "¿Qué tarjeta quieres solicitar: Campus, Horizon, Rewards o Summit?")
+            else:
+                answer = ("Qual cartão você gostaria de avaliar: Campus, Horizon, Rewards ou Summit?"
+                          if conversation.language == "pt" else
+                          "¿Qué tarjeta te gustaría evaluar: Campus, Horizon, Rewards o Summit?")
             return {"answer": answer, "citations": [], "route": "ASK_CARD",
                     "wants_application": application_intent, "fact_version": FACT_VERSION}
         answer = (f"Ótimo. Para avançar com o {card}, posso fazer uma avaliação inicial usando seu perfil. "

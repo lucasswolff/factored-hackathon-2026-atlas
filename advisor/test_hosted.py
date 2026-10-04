@@ -237,6 +237,31 @@ class HostedTest(unittest.TestCase):
         self.assertIsNone(injection["application_draft"])
         self.assertIsNone(injection["application"])
 
+    def test_second_application_is_disclosed_before_card_choice_or_precheck(self):
+        self.judge("GET", "/")
+        self.judge("POST", "/api/start", {"entry": "direct", "country": "Colombia",
+                                           "language": "pt", "alias": "P04"})
+        self.judge("POST", "/api/chat", {"message": "Quero solicitar Horizon"})
+        self.judge("POST", "/api/chat", {"message": "não"})
+        _, state, _ = self.judge("POST", "/api/chat", {"message": "sim"})
+        reference = state["application"]["application_id"]
+        intent = {"intent": "APPLY", "card": "AMBIGUOUS", "lower_annual_fee": False,
+                  "no_annual_fee": False, "travel_required": False, "skip_precheck": False}
+        with patch("advisor.service._classify_intent", return_value=intent):
+            _, state, _ = self.judge("POST", "/api/chat", {
+                "message": "quero aplicar para outro cartão"})
+        self.assertEqual(state["events"][-1]["route"], "APPLICATION_EXISTS")
+        self.assertIn("nova conversa", state["events"][-1]["text"])
+        self.assertIsNone(state["pending_action"])
+        self.assertEqual(state["application"]["application_id"], reference)
+        with patch("advisor.service._classify_intent", return_value={**intent, "card": "Rewards"}):
+            _, state, _ = self.judge("POST", "/api/chat", {
+                "message": "Quero solicitar Rewards"})
+        self.assertEqual(state["events"][-1]["route"], "APPLICATION_EXISTS")
+        self.assertIsNone(state["pending_action"])
+        self.assertEqual(state["application"]["application_id"], reference)
+        self.assertNotIn("Rewards", state["prechecks"])
+
     def test_pending_application_can_switch_to_other_card_comparison(self):
         self.judge("GET", "/")
         self.judge("POST", "/api/start", {"entry": "campaign", "campaign_id": "CMP-NM2UHJMKPA0C",

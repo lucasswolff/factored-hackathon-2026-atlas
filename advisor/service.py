@@ -84,8 +84,9 @@ def _classify_intent(conversation: "Conversation", message: str,
         "not whether cancellation is allowed. HUMAN directly asks for a person. END closes chat. "
         "CLARIFY means the message has no clear standalone intent. Never treat an acknowledgement "
         "as consent. card is CURRENT for 'this card' or the actively discussed card, a named card "
-        "when directly requested, AMBIGUOUS for multiple possible cards, or empty when no card is "
-        "known. For COMPARE, card is the price/reference card when one is specified. Only set "
+        "when directly requested, AMBIGUOUS for multiple possible cards or a request for an unnamed "
+        "different card, or empty when no card is known. Never map an unnamed different card to "
+        "CURRENT. For COMPARE, card is the price/reference card when one is specified. Only set "
         "lower_annual_fee, no_annual_fee, or travel_required when requested. Set skip_precheck only "
         "for an explicit request to apply without an initial check. Return no prose."
     )
@@ -710,8 +711,11 @@ def respond(conversation: Conversation, message: str,
                 "card": card, "fact_version": FACT_VERSION}
     skip_precheck = (semantic["skip_precheck"] if semantic is not None else bool(re.search(
         r"\b(?:sin|sem)\s+(?:(?:la|el|a|o)\s+)?(?:evaluaci[oó]n|avalia[cç][aã]o|precheck)", lower)))
-    if conversation.demo_alias and application_intent and skip_precheck and len(mentioned_cards) < 2:
-        if conversation.selected_card is None:
+    action_card = (None if len(mentioned_cards) >= 2 or (
+        semantic is not None and semantic["card"] in {"", "AMBIGUOUS"})
+                   else conversation.selected_card)
+    if conversation.demo_alias and application_intent and skip_precheck:
+        if action_card is None:
             answer = ("Qual cartão você quer solicitar sem avaliação inicial?" if conversation.language == "pt" else
                       "¿Qué tarjeta quieres solicitar sin evaluación inicial?")
             return {"answer": answer, "citations": [], "route": "ASK_CARD",
@@ -720,11 +724,11 @@ def respond(conversation: Conversation, message: str,
                            if conversation.language == "pt" else
                            "Se omitirá la evaluación inicial; la solicitud todavía requiere confirmación separada."),
                 "citations": [], "route": "SKIP_PRECHECK",
-                "card": conversation.selected_card, "fact_version": FACT_VERSION}
+                "card": action_card, "fact_version": FACT_VERSION}
     precheck_request = (semantic["intent"] == "PRECHECK" if semantic is not None else
                         any(cue in lower for cue in precheck_cues))
     if conversation.demo_alias and (application_intent or precheck_request):
-        card = conversation.selected_card if len(mentioned_cards) < 2 else None
+        card = action_card
         if card is None:
             answer = ("Claro. Qual cartão você gostaria de avaliar: Campus, Horizon, Rewards ou Summit?"
                       if conversation.language == "pt" else "Claro. ¿Qué tarjeta te gustaría evaluar: Campus, Horizon, Rewards o Summit?")

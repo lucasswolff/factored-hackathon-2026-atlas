@@ -61,6 +61,21 @@ class ConversationTests(unittest.TestCase):
         self.assertEqual(chat.selected_card, "Summit")
         answer_model.assert_not_called()
 
+    def test_model_first_unnamed_other_card_requires_choice(self):
+        directory = SyntheticDirectory()
+        chat = Conversation.start("es", "México", selected_card="Rewards")
+        select_demo_persona(chat, directory, "P05")
+        grant_profile_permission(chat)
+        with patch("advisor.service._classify_intent", return_value={
+                "intent": "APPLY", "card": "AMBIGUOUS", "lower_annual_fee": False,
+                "no_annual_fee": False, "travel_required": False,
+                "skip_precheck": False}), patch("advisor.service._generate") as answer_model:
+            result = respond(chat, "Quiero solicitar otra tarjeta", directory=directory)
+        self.assertEqual(result["route"], "ASK_CARD")
+        self.assertTrue(result["wants_application"])
+        self.assertEqual(chat.selected_card, "Rewards")
+        answer_model.assert_not_called()
+
     def test_intent_request_excludes_profile_values_and_uses_typed_choices(self):
         directory = SyntheticDirectory()
         chat = Conversation.start("es", "México", selected_card="Horizon")

@@ -1,5 +1,11 @@
 # Judge rehearsal and bounded concurrency check — 2026-10-02
 
+These counts describe this dated rehearsal on an earlier build, before the
+model-first intent router and [later live conversation
+checks](live_conversation_checks_2026-10-04.md). They are not cumulative test
+totals. The six-visitor check counted four HTTP requests per visitor, not 24
+complete application journeys.
+
 The public AWS Lambda judge app was tested at its HTTPS Function URL after the
 conversation fixes were deployed. All personas in this run were fictional,
 team-generated fixtures. The offer and precheck policy are synthetic. No real

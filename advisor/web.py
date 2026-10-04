@@ -438,9 +438,12 @@ class WebApp:
                         if chat.language == "pt" else
                         f"Explica los importes exactos de cuota anual, umbrales de bonificación y tasa de compras de {cards} en el país actual.")
             return None
-        if (plain not in {"quero", "quiero", "sim", "si"} or
-            not last["text"].rstrip().endswith("?") or
-            not re.search(r"taxa|tarifa|anuidade|juros|condi[cç][aã]|cuota|inter[eé]s", last["text"].casefold())):
+        offered_fees = re.search(
+            r"\b(?:posso|puedo|quer|quieres|gostaria|gustaria)\b.{0,120}"
+            r"\b(?:taxas?|tarifas?|anuidade|juros|condicao|condicoes|cuota|interes|intereses|tasas?|costos?|custos?)\b",
+            plain_text(last["text"]),
+        )
+        if plain not in {"quero", "quiero", "sim", "si"} or not offered_fees:
             return None
         benefit_cards = {fid.split(".", 1)[1].title() for fid in last.get("citations", [])
                          if fid.startswith("BENEFIT.")}

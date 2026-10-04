@@ -4,8 +4,10 @@ Public repository: https://github.com/lucasswolff/factored-hackathon-2026-atlas.
 The organizer PDFs are excluded from the public repository because a supplied
 data dictionary contains participant-only source access credentials. References
 to those PDFs in planning documents refer to local participant copies. The
-[judge rehearsal](docs/judge_rehearsal_2026-10-02.md) records the latest deployed
-workflow and bounded concurrency results.
+[2 October judge rehearsal](docs/judge_rehearsal_2026-10-02.md) records a dated
+entry-path matrix and bounded concurrency check. Later
+[live conversation checks](docs/live_conversation_checks_2026-10-04.md) cover
+the model-first router.
 The [AWS deployment guide](infra/aws/README.md#automatic-code-deployment-from-protected-main)
 describes the pull-request test and automatic deployment triggered by a push
 to protected `main`.

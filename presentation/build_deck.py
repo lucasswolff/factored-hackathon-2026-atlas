@@ -279,8 +279,8 @@ def build() -> None:
                   "7/8 live smoke scenarios met expectation; 87 local tests\npassed. Shared cap: 400 model attempts per UTC day.\nNo independent bilingual quality result yet.", h=1.72)
     d.rect(0.56, 6.18, 12.22, 0.55, PALE, stroke=LINE, radius=0.11)
     d.text(0.78, 6.35, 11.75, 0.24,
-           "Separate earlier rehearsal: 12/12 entry paths, 3/3 stored applications, 24/24 requests from six visitors; no peak load test.",
-           10.3, bold=True, color=TEAL)
+           "Earlier 2 Oct rehearsal only: 12 entry/country/language paths; 3 application read-backs; 24 HTTP requests from six visitors.",
+           9.6, bold=True, color=TEAL)
     d.finish()
 
     # 6. Roadmap to a real customer service

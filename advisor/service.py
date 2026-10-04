@@ -290,6 +290,13 @@ class Conversation:
                 "Olá! Posso ajudar você a comparar Campus, Horizon, Rewards e Summit. O que procura em um cartão?")
 
 
+def _asks_about_cancellation(text: str) -> bool:
+    plain = normalize(text)
+    return (any(word.startswith(("cancel", "rescind", "desist", "permanenc", "fidelidad", "fidelidade"))
+                for word in plain.split())
+            or any(phrase in plain for phrase in ("dar de baja", "dar baixa", "encerrar cartao")))
+
+
 def _boundary(text: str, language: str) -> str | None:
     """Server-owned response for requests whose outcome needs unavailable tools."""
     t = text.casefold()
@@ -309,7 +316,7 @@ def _boundary(text: str, language: str) -> str | None:
     if wants_human(text):
         return ("Entendo que você quer atendimento humano. Ainda não há ferramenta de encaminhamento conectada; ninguém foi atribuído."
                 if pt else "Entiendo que quieres atención humana. Aún no hay una herramienta de derivación conectada; no se asignó a nadie.")
-    if any(s in t for s in ("solicitud", "solicitar la tarjeta", "enviar pedido", "enviar solicitação", "contratar", "contrato", "aplicar ahora", "aplicar por", "puedo aplicar", "posso solicitar", "quero solicitar", "apply now")):
+    if not _asks_about_cancellation(text) and any(s in t for s in ("solicitud", "solicitar la tarjeta", "enviar pedido", "enviar solicitação", "contratar", "contrato", "aplicar ahora", "aplicar por", "puedo aplicar", "posso solicitar", "quero solicitar", "apply now")):
         return ("Ainda não consigo enviar solicitações por este canal. Nenhum pedido foi criado. Posso esclarecer as condições do cartão."
                 if pt else "Aún no puedo enviar solicitudes por este canal. No se creó ninguna solicitud. Puedo aclararte las condiciones de la tarjeta.")
     if any(s in t for s in ("califico", "calificar", "califica", "elegível", "elegibilidade", "preaprov", "pré-aprov", "preaprob", "aprueba", "aprovado", "precheck", "prequal", "soy elegible", "sou elegível", "posso ser aprovado")):
@@ -523,6 +530,10 @@ def respond(conversation: Conversation, message: str,
         r"(?:cart[aã]o|tarjeta)\b", lower)) or bool(re.search(
         r"\b(?:vou querer|lo quiero)(?:\s+(?:(?:o|a|el|la|esse|esta)\s+)?(?:cart[aã]o|tarjeta|campus|horizon|rewards|summit))?\s*[.!]?\s*$",
         lower))
+    # Questions about ending a card can contain words such as "solicitar" or
+    # "contrato". They ask for public terms, not an application/precheck.
+    if _asks_about_cancellation(message):
+        application_intent = False
     if conversation.demo_alias and conversation.selected_card and lower in {"quero", "quiero", "i want it"}:
         card = conversation.selected_card
         answer = (f"Você quer solicitar o {card} ou prefere saber mais sobre ele?"

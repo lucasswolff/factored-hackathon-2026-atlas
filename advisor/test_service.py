@@ -119,6 +119,27 @@ class ConversationTests(unittest.TestCase):
                 self.assertIn("[TERM.CANCELLATION]", generate.call_args.args[0])
                 self.assertEqual(chat.selected_card, card)
 
+    def test_cancellation_questions_do_not_start_application(self):
+        cases = (
+            ("es", "Si contrato Horizon, ¿puedo cancelar sin multa cuando quiera?"),
+            ("es", "¿Puedo solicitar la cancelación de Rewards antes del año?"),
+            ("pt", "Se eu contratar Summit, posso cancelar logo depois?"),
+            ("pt", "Posso pedir o cancelamento do Rewards a qualquer momento?"),
+        )
+        for language, question in cases:
+            with self.subTest(question=question):
+                chat = Conversation.start(language, "México", selected_card="Rewards")
+                chat.demo_alias = "P08"
+                with patch("advisor.service._generate", return_value={
+                    "answer": "Sem prazo mínimo de permanência." if language == "pt" else
+                              "Sin permanencia mínima.",
+                    "citations": ["TERM.CANCELLATION"], "unresolved": False,
+                }) as model:
+                    result = respond(chat, question, directory=object())
+                self.assertEqual(result["route"], "ANSWER_FACT")
+                self.assertEqual(result["citations"], ["TERM.CANCELLATION"])
+                model.assert_called_once()
+
     def test_model_cannot_claim_card_was_cancelled(self):
         chat = Conversation.start("pt", "México", selected_card="Rewards")
         with patch("advisor.service._generate", side_effect=[

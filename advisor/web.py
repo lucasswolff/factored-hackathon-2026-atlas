@@ -53,7 +53,15 @@ STATIC = {"/": ("index.html", "text/html; charset=utf-8"),
 SESSION_SECONDS = 2 * 60 * 60
 RATE_WINDOW_SECONDS = 10 * 60
 MAX_REQUESTS_PER_WINDOW = 120
-MAX_ANSWER_CALLS_PER_DAY = 200
+MAX_ANSWERS_PER_DAY = 200
+MODEL_ATTEMPTS_PER_ANSWER = 2  # Intent classification plus a grounded fact answer.
+MAX_ANSWER_CALLS_PER_DAY = MAX_ANSWERS_PER_DAY * MODEL_ATTEMPTS_PER_ANSWER
+
+
+def model_attempt_limit(answer_budget: int) -> int:
+    if not 1 <= answer_budget <= MAX_ANSWERS_PER_DAY:
+        raise ValueError("ADVISOR_MAX_ANSWERS_PER_DAY must be between 1 and 200")
+    return answer_budget * MODEL_ATTEMPTS_PER_ANSWER
 
 
 class DemoLimitError(Exception):
@@ -1025,11 +1033,13 @@ def main() -> None:
         if not db_path or not Path(db_path).is_absolute():
             parser.error("hosted mode requires an absolute ADVISOR_DB_PATH on persistent storage")
         try:
-            answer_limit = int(os.environ.get("ADVISOR_MAX_ANSWERS_PER_DAY", str(MAX_ANSWER_CALLS_PER_DAY)))
+            answer_budget = int(os.environ.get("ADVISOR_MAX_ANSWERS_PER_DAY", str(MAX_ANSWERS_PER_DAY)))
         except ValueError:
             parser.error("ADVISOR_MAX_ANSWERS_PER_DAY must be an integer")
-        if not 1 <= answer_limit <= 200:
-            parser.error("ADVISOR_MAX_ANSWERS_PER_DAY must be between 1 and 200")
+        try:
+            answer_limit = model_attempt_limit(answer_budget)
+        except ValueError as exc:
+            parser.error(str(exc))
         store = ApplicationStore(Path(db_path))
         app = WebApp(applications=store, hosted=True, answer_limit=answer_limit,
                      local_http_preview=args.local_http_preview)

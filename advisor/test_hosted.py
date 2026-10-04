@@ -15,10 +15,16 @@ from unittest.mock import patch
 from advisor.applications import ApplicationStore
 from advisor.service import Conversation
 from advisor.synthetic_data import SyntheticDirectory
-from advisor.web import AdvisorServer, DemoLimitError, MAX_REQUESTS_PER_WINDOW, WebApp
+from advisor.web import AdvisorServer, DemoLimitError, MAX_REQUESTS_PER_WINDOW, WebApp, model_attempt_limit
 
 
 class HostedTest(unittest.TestCase):
+    def test_answer_budget_counts_two_provider_attempts(self):
+        self.assertEqual(model_attempt_limit(200), 400)
+        self.assertEqual(model_attempt_limit(1), 2)
+        with self.assertRaises(ValueError):
+            model_attempt_limit(201)
+
     @classmethod
     def setUpClass(cls):
         cls.env = patch.dict(os.environ, {

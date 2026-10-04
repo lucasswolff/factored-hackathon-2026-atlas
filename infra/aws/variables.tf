@@ -26,6 +26,7 @@ variable "enabled" {
 
 variable "max_answers_per_day" {
   type    = number
+  description = "Answer budget; the application allows up to two provider attempts per configured answer."
   default = 200
   validation {
     condition     = var.max_answers_per_day >= 1 && var.max_answers_per_day <= 200
